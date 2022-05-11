@@ -21,7 +21,36 @@ if fn.empty(fn.glob(install_path)) > 0 then
 end
 
 vim.cmd [[packadd packer.nvim]]
-return require('packer').startup(function()
+return require('packer').startup({function()
   use 'wbthomason/packer.nvim'
   use 'preservim/nerdtree'
-end)
+  -- buffer栏插件
+  use {'akinsho/bufferline.nvim', tag = "v2.*", requires = 'kyazdani42/nvim-web-devicons'}
+  -- 补全插件
+  use("hrsh7th/nvim-cmp")
+  -- 补全源
+  use("hrsh7th/cmp-vsnip")
+  use("hrsh7th/cmp-nvim-lsp") -- { name = nvim_lsp }
+  use("hrsh7th/cmp-buffer") -- { name = 'buffer' },
+  use("hrsh7th/cmp-path") -- { name = 'path' }
+  use("hrsh7th/cmp-cmdline") -- { name = 'cmdline' }
+  use("hrsh7th/cmp-nvim-lsp-signature-help") -- { name = 'nvim_lsp_signature_help' }
+  use('onsails/lspkind-nvim')
+  --  lua增强
+  use("folke/lua-dev.nvim")
+  -- onedark 主题
+  use('navarasu/onedark.nvim')
+  -- vim-tree
+  use {
+    'kyazdani42/nvim-tree.lua',
+    requires = 'kyazdani42/nvim-web-devicons',
+  }
+  -- treesitter
+  use { 'nvim-treesitter/nvim-treesitter', run = ':TSUpdate' }
+end,
+config={
+  git = {
+      default_url_format = "https://mirror.ghproxy.com/https://github.com/%s",
+  }
+}
+})
