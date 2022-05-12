@@ -1,9 +1,12 @@
 -- local cmp_status_ok, cmp = pcall(require,'cmp')
 local cmp = require('cmp')
+local luasnip = require('luasnip')
 local check_backspace = function()
   local col = vim.fn.col "." - 1
   return col == 0 or vim.fn.getline("."):sub(col, col):match "%s"
 end
+
+require("luasnip/loaders/from_vscode").lazy_load()
 
 
 --   פּ ﯟ   some other good icons
@@ -37,9 +40,16 @@ local kind_icons = {
 
 cmp.setup {
   snippet = {
+    -- luasnip
     expand = function(args)
       luasnip.lsp_expand(args.body) -- For `luasnip` users.
     end,
+    -- vsnip
+    --[[
+    expand = function(args)
+      vim.fun["vsnip#anonymous"](args.body)
+    end,
+    --]]
   },
   mapping = {
     ["<C-k>"] = cmp.mapping.select_prev_item(),
@@ -88,11 +98,11 @@ cmp.setup {
     fields = { "kind", "abbr", "menu" },
     format = function(entry, vim_item)
       -- Kind icons
-      vim_item.kind = string.format("%s", kind_icons[vim_item.kind])
-      -- vim_item.kind = string.format('%s %s', kind_icons[vim_item.kind], vim_item.kind) -- This concatonates the icons with the name of the item kind
+      -- vim_item.kind = string.format("%s", kind_icons[vim_item.kind])
+       vim_item.kind = string.format('%s %s', kind_icons[vim_item.kind], vim_item.kind) -- This concatonates the icons with the name of the item kind
       vim_item.menu = ({
         nvim_lsp = "[LSP]",
-        luasnip = "[Snippet]",
+        luasnip = "[luasnip]",
         buffer = "[Buffer]",
         path = "[Path]",
       })[entry.source.name]
@@ -101,6 +111,8 @@ cmp.setup {
   },
   sources = {
     { name = "nvim_lsp" },
+    { name = "vsnip" },
+    {name = 'npm',keyword_length = 4},
     { name = "luasnip" },
     { name = "buffer" },
     { name = "path" },
@@ -125,3 +137,18 @@ cmp.setup {
   },
 }
 
+
+cmp.setup.cmdline('/',{
+  sources = {
+    {name = 'buffer'}
+  }
+})
+
+
+cmp.setup.cmdline(':',{
+  sources = cmp.config.sources({
+    {name='path'}
+  },{
+    {name = 'cmdline'}
+  })
+})

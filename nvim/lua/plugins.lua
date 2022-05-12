@@ -23,11 +23,16 @@ end
 vim.cmd [[packadd packer.nvim]]
 return require('packer').startup({function()
   use 'wbthomason/packer.nvim'
+  use 'neovim/nvim-lspconfig'
+
   use 'preservim/nerdtree'
+
   -- buffer栏插件
   use {'akinsho/bufferline.nvim', tag = "v2.*", requires = 'kyazdani42/nvim-web-devicons'}
+  
   -- 补全插件
   use("hrsh7th/nvim-cmp")
+
   -- 补全源
   use("hrsh7th/cmp-vsnip")
   use("hrsh7th/cmp-nvim-lsp") -- { name = nvim_lsp }
@@ -36,35 +41,61 @@ return require('packer').startup({function()
   use("hrsh7th/cmp-cmdline") -- { name = 'cmdline' }
   use("hrsh7th/cmp-nvim-lsp-signature-help") -- { name = 'nvim_lsp_signature_help' }
   use('onsails/lspkind-nvim')
+  use {
+  'David-Kunz/cmp-npm',
+  requires = {
+    'nvim-lua/plenary.nvim'
+    }
+  }
+  
+  -- LuaSnip
+  use('L3MON4D3/LuaSnip')
+  use('saadparwaiz1/cmp_luasnip')
+
   --  lua增强
   use("folke/lua-dev.nvim")
+
   -- onedark 主题
   use('navarasu/onedark.nvim')
+
   -- vim-tree
   use {
     'kyazdani42/nvim-tree.lua',
     requires = 'kyazdani42/nvim-web-devicons',
   }
+
   -- treesitter
   use { 'nvim-treesitter/nvim-treesitter', run = ':TSUpdate' }
   use { 'vim-airline/vim-airline'}
   use {'vim-airline/vim-airline-themes'}
   use 'preservim/tagbar'
+
   -- 开屏页面
-   use 'mhinz/vim-startify'
+  use 'mhinz/vim-startify'
+
    -- go 插件
-    use 'fatih/vim-go'
-    use 'tpope/vim-commentary'
-    use 'tpope/vim-surround'
-    use 'jiangmiao/auto-pairs'
+  use 'fatih/vim-go'
+  use 'tpope/vim-commentary'
+  use 'tpope/vim-surround'
+  use 'jiangmiao/auto-pairs'
+
 -- git 插件
-   use 'f-person/git-blame.nvim'
+  use 'f-person/git-blame.nvim'
+
 -- autosave 
-    use '907th/vim-auto-save'
-   use {
-  'nvim-telescope/telescope.nvim',
-  requires = { {'nvim-lua/plenary.nvim'} }
-}
+  use '907th/vim-auto-save'
+  use {
+      'nvim-telescope/telescope.nvim',
+      requires = { {'nvim-lua/plenary.nvim'} }
+    }
+  -- terminal
+  --
+  use {
+    'akinsho/toggleterm.nvim',tag = 'v1.*',config = function()
+      require('toggleterm').setup()
+    end
+  }
+
 end,
 config={
   git = {
