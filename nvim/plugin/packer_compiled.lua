@@ -69,6 +69,11 @@ end
 time([[try_loadstring definition]], false)
 time([[Defining packer_plugins]], true)
 _G.packer_plugins = {
+  ["auto-pairs"] = {
+    loaded = true,
+    path = "/root/.local/share/nvim/site/pack/packer/start/auto-pairs",
+    url = "https://mirror.ghproxy.com/https://github.com/jiangmiao/auto-pairs"
+  },
   ["bufferline.nvim"] = {
     loaded = true,
     path = "/root/.local/share/nvim/site/pack/packer/start/bufferline.nvim",
@@ -103,6 +108,11 @@ _G.packer_plugins = {
     loaded = true,
     path = "/root/.local/share/nvim/site/pack/packer/start/cmp-vsnip",
     url = "https://mirror.ghproxy.com/https://github.com/hrsh7th/cmp-vsnip"
+  },
+  ["git-blame.nvim"] = {
+    loaded = true,
+    path = "/root/.local/share/nvim/site/pack/packer/start/git-blame.nvim",
+    url = "https://mirror.ghproxy.com/https://github.com/f-person/git-blame.nvim"
   },
   ["lspkind-nvim"] = {
     loaded = true,
@@ -148,6 +158,56 @@ _G.packer_plugins = {
     loaded = true,
     path = "/root/.local/share/nvim/site/pack/packer/start/packer.nvim",
     url = "https://mirror.ghproxy.com/https://github.com/wbthomason/packer.nvim"
+  },
+  ["plenary.nvim"] = {
+    loaded = true,
+    path = "/root/.local/share/nvim/site/pack/packer/start/plenary.nvim",
+    url = "https://mirror.ghproxy.com/https://github.com/nvim-lua/plenary.nvim"
+  },
+  tagbar = {
+    loaded = true,
+    path = "/root/.local/share/nvim/site/pack/packer/start/tagbar",
+    url = "https://mirror.ghproxy.com/https://github.com/preservim/tagbar"
+  },
+  ["telescope.nvim"] = {
+    loaded = true,
+    path = "/root/.local/share/nvim/site/pack/packer/start/telescope.nvim",
+    url = "https://mirror.ghproxy.com/https://github.com/nvim-telescope/telescope.nvim"
+  },
+  ["vim-airline"] = {
+    loaded = true,
+    path = "/root/.local/share/nvim/site/pack/packer/start/vim-airline",
+    url = "https://mirror.ghproxy.com/https://github.com/vim-airline/vim-airline"
+  },
+  ["vim-airline-themes"] = {
+    loaded = true,
+    path = "/root/.local/share/nvim/site/pack/packer/start/vim-airline-themes",
+    url = "https://mirror.ghproxy.com/https://github.com/vim-airline/vim-airline-themes"
+  },
+  ["vim-auto-save"] = {
+    loaded = true,
+    path = "/root/.local/share/nvim/site/pack/packer/start/vim-auto-save",
+    url = "https://mirror.ghproxy.com/https://github.com/907th/vim-auto-save"
+  },
+  ["vim-commentary"] = {
+    loaded = true,
+    path = "/root/.local/share/nvim/site/pack/packer/start/vim-commentary",
+    url = "https://mirror.ghproxy.com/https://github.com/tpope/vim-commentary"
+  },
+  ["vim-go"] = {
+    loaded = true,
+    path = "/root/.local/share/nvim/site/pack/packer/start/vim-go",
+    url = "https://mirror.ghproxy.com/https://github.com/fatih/vim-go"
+  },
+  ["vim-startify"] = {
+    loaded = true,
+    path = "/root/.local/share/nvim/site/pack/packer/start/vim-startify",
+    url = "https://mirror.ghproxy.com/https://github.com/mhinz/vim-startify"
+  },
+  ["vim-surround"] = {
+    loaded = true,
+    path = "/root/.local/share/nvim/site/pack/packer/start/vim-surround",
+    url = "https://mirror.ghproxy.com/https://github.com/tpope/vim-surround"
   }
 }
 

@@ -47,6 +47,24 @@ return require('packer').startup({function()
   }
   -- treesitter
   use { 'nvim-treesitter/nvim-treesitter', run = ':TSUpdate' }
+  use { 'vim-airline/vim-airline'}
+  use {'vim-airline/vim-airline-themes'}
+  use 'preservim/tagbar'
+  -- 开屏页面
+   use 'mhinz/vim-startify'
+   -- go 插件
+    use 'fatih/vim-go'
+    use 'tpope/vim-commentary'
+    use 'tpope/vim-surround'
+    use 'jiangmiao/auto-pairs'
+-- git 插件
+   use 'f-person/git-blame.nvim'
+-- autosave 
+    use '907th/vim-auto-save'
+   use {
+  'nvim-telescope/telescope.nvim',
+  requires = { {'nvim-lua/plenary.nvim'} }
+}
 end,
 config={
   git = {
