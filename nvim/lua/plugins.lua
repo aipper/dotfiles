@@ -23,9 +23,10 @@ end
 vim.cmd [[packadd packer.nvim]]
 return require('packer').startup({function()
   use 'wbthomason/packer.nvim'
+  use 'williamboman/nvim-lsp-installer'
   use 'neovim/nvim-lspconfig'
 
-  use 'preservim/nerdtree'
+ -- use 'preservim/nerdtree'
 
   -- buffer栏插件
   use {'akinsho/bufferline.nvim', tag = "v2.*", requires = 'kyazdani42/nvim-web-devicons'}
@@ -80,8 +81,10 @@ return require('packer').startup({function()
   use 'jiangmiao/auto-pairs'
 
 -- git 插件
-  use 'f-person/git-blame.nvim'
-  use 'kdheepak/lazygit.nvim'
+  -- use 'f-person/git-blame.nvim'
+  -- use 'kdheepak/lazygit.nvim'
+  use  {'lewis6991/gitsigns.nvim',tag = 'release'}
+
 
 -- autosave 
   use '907th/vim-auto-save'
@@ -95,6 +98,22 @@ return require('packer').startup({function()
     'akinsho/toggleterm.nvim',tag = 'v1.*',config = function()
       require('toggleterm').setup()
     end
+  }
+  use {
+    'ojroques/nvim-lspfuzzy',
+    requires = {
+        {'junegunn/fzf'},
+        {'junegunn/fzf.vim'},  -- to enable preview (optional)
+    },
+  }
+  -- notify
+  use 'rcarriga/nvim-notify'
+  -- css color
+  use {'norcalli/nvim-colorizer.lua' }
+  --  todo 
+  use {
+      'folke/todo-comments.nvim',
+        requires = "nvim-lua/plenary.nvim",
   }
 
 end,

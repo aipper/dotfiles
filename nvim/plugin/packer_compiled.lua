@@ -124,15 +124,20 @@ _G.packer_plugins = {
     path = "/root/.local/share/nvim/site/pack/packer/start/cmp_luasnip",
     url = "https://mirror.ghproxy.com/https://github.com/saadparwaiz1/cmp_luasnip"
   },
-  ["git-blame.nvim"] = {
+  fzf = {
     loaded = true,
-    path = "/root/.local/share/nvim/site/pack/packer/start/git-blame.nvim",
-    url = "https://mirror.ghproxy.com/https://github.com/f-person/git-blame.nvim"
+    path = "/root/.local/share/nvim/site/pack/packer/start/fzf",
+    url = "https://mirror.ghproxy.com/https://github.com/junegunn/fzf"
   },
-  ["lazygit.nvim"] = {
+  ["fzf.vim"] = {
     loaded = true,
-    path = "/root/.local/share/nvim/site/pack/packer/start/lazygit.nvim",
-    url = "https://mirror.ghproxy.com/https://github.com/kdheepak/lazygit.nvim"
+    path = "/root/.local/share/nvim/site/pack/packer/start/fzf.vim",
+    url = "https://mirror.ghproxy.com/https://github.com/junegunn/fzf.vim"
+  },
+  ["gitsigns.nvim"] = {
+    loaded = true,
+    path = "/root/.local/share/nvim/site/pack/packer/start/gitsigns.nvim",
+    url = "https://mirror.ghproxy.com/https://github.com/lewis6991/gitsigns.nvim"
   },
   ["lspkind-nvim"] = {
     loaded = true,
@@ -144,20 +149,30 @@ _G.packer_plugins = {
     path = "/root/.local/share/nvim/site/pack/packer/start/lua-dev.nvim",
     url = "https://mirror.ghproxy.com/https://github.com/folke/lua-dev.nvim"
   },
-  nerdtree = {
-    loaded = true,
-    path = "/root/.local/share/nvim/site/pack/packer/start/nerdtree",
-    url = "https://mirror.ghproxy.com/https://github.com/preservim/nerdtree"
-  },
   ["nvim-cmp"] = {
     loaded = true,
     path = "/root/.local/share/nvim/site/pack/packer/start/nvim-cmp",
     url = "https://mirror.ghproxy.com/https://github.com/hrsh7th/nvim-cmp"
   },
+  ["nvim-lsp-installer"] = {
+    loaded = true,
+    path = "/root/.local/share/nvim/site/pack/packer/start/nvim-lsp-installer",
+    url = "https://mirror.ghproxy.com/https://github.com/williamboman/nvim-lsp-installer"
+  },
   ["nvim-lspconfig"] = {
     loaded = true,
     path = "/root/.local/share/nvim/site/pack/packer/start/nvim-lspconfig",
     url = "https://mirror.ghproxy.com/https://github.com/neovim/nvim-lspconfig"
+  },
+  ["nvim-lspfuzzy"] = {
+    loaded = true,
+    path = "/root/.local/share/nvim/site/pack/packer/start/nvim-lspfuzzy",
+    url = "https://mirror.ghproxy.com/https://github.com/ojroques/nvim-lspfuzzy"
+  },
+  ["nvim-notify"] = {
+    loaded = true,
+    path = "/root/.local/share/nvim/site/pack/packer/start/nvim-notify",
+    url = "https://mirror.ghproxy.com/https://github.com/rcarria/nvim-notify"
   },
   ["nvim-tree.lua"] = {
     loaded = true,
