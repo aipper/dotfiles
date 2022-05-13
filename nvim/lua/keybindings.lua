@@ -13,7 +13,7 @@ vim.cmd[[
 ]]
 
 map("n", '<S-e>', ":NvimTreeToggle<CR>", opt)
-map("n", '<leader>f', ":NvimTreeToggle<CR>", opt)
+map("n", '<leader>w', "<C-w>", opt)
 -- telescope 
 map('n','<leader>ff', ':Telescope fd<cr>' ,{})
 map('n','<leader>fg', ':Telescope live_grep<cr>' ,{})

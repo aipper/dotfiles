@@ -1,5 +1,9 @@
 -- Lua
-local onedark = require("onedark")
+--local onedark = require("onedark")
+local onedark_status ,onedark = pcall(require,'onedark')
+if not onedark_status then
+	return 
+end
 onedark.setup  {
     -- Main options --
     style = 'deep', -- Default theme style. Choose between 'dark', 'darker', 'cool', 'deep', 'warm', 'warmer' and 'light'

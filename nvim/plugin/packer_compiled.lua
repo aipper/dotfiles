@@ -94,6 +94,11 @@ _G.packer_plugins = {
     path = "/root/.local/share/nvim/site/pack/packer/start/cmp-cmdline",
     url = "https://mirror.ghproxy.com/https://github.com/hrsh7th/cmp-cmdline"
   },
+  ["cmp-npm"] = {
+    loaded = true,
+    path = "/root/.local/share/nvim/site/pack/packer/start/cmp-npm",
+    url = "https://mirror.ghproxy.com/https://github.com/David-Kunz/cmp-npm"
+  },
   ["cmp-nvim-lsp"] = {
     loaded = true,
     path = "/root/.local/share/nvim/site/pack/packer/start/cmp-nvim-lsp",
@@ -123,6 +128,11 @@ _G.packer_plugins = {
     loaded = true,
     path = "/root/.local/share/nvim/site/pack/packer/start/git-blame.nvim",
     url = "https://mirror.ghproxy.com/https://github.com/f-person/git-blame.nvim"
+  },
+  ["lazygit.nvim"] = {
+    loaded = true,
+    path = "/root/.local/share/nvim/site/pack/packer/start/lazygit.nvim",
+    url = "https://mirror.ghproxy.com/https://github.com/kdheepak/lazygit.nvim"
   },
   ["lspkind-nvim"] = {
     loaded = true,

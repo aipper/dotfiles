@@ -81,6 +81,7 @@ return require('packer').startup({function()
 
 -- git 插件
   use 'f-person/git-blame.nvim'
+  use 'kdheepak/lazygit.nvim'
 
 -- autosave 
   use '907th/vim-auto-save'
