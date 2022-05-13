@@ -20,3 +20,21 @@ vim.wo.signcolumn = "yes"
 
 vim.opt.clipboard = "unnamedplus"
 
+-- 新行对齐当前行，空格替代tab
+vim.o.expandtab = true
+vim.bo.expandtab = true
+vim.o.autoindent = true
+vim.bo.autoindent = true
+vim.o.smartindent = true
+
+-- 当文件被外部程序修改时，自动加载
+vim.o.autoread = true
+vim.bo.autoread = true
+-- always show tabline
+vim.o.showtabline = 2
+-- 缩进2个空格等于一个Tab
+vim.o.tabstop = 2
+vim.bo.tabstop = 2
+vim.o.softtabstop = 2
+vim.o.shiftwidth=4
+vim.o.shiftround = true

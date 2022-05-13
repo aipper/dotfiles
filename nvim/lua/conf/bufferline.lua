@@ -1,4 +1,5 @@
 local buffer_status,bufferline = pcall(require,'bufferline')
+print('bufferline  %s',buffer_status)
 if not buffer_status then 
 	return 
 end
