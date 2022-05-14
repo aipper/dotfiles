@@ -4,6 +4,22 @@ if not  lsp_install_status  then
 end
 
 
+local  servers = {
+    gopls = require('conf.lspconf.gopls'),
+    sumneko_lua = require('conf.lspconf.lua')
+}
+
+-- auto install  func
+for name, _ in pairs(servers) do
+  local server_is_found, server = lspInstall.get_server(name)
+  if server_is_found then
+    if not server:is_installed() then
+      print("Installing " .. name)
+      server:install()
+    end
+  end
+end
+
 local DEFAULT_SETTINGS = {
     -- A list of servers to automatically install if they're not already installed. Example: { "rust_analyzer", "sumneko_lua" }
     -- This setting has no relation with the `automatic_installation` setting.
@@ -16,7 +32,7 @@ local DEFAULT_SETTINGS = {
     --   - true: All servers set up via lspconfig are automatically installed.
     --   - { exclude: string[] }: All servers set up via lspconfig, except the ones provided in the list, are automatically installed.
     --       Example: automatic_installation = { exclude = { "rust_analyzer", "solargraph" } }
-    automatic_installation = false,
+    automatic_installation = true,
 
     ui = {
 

@@ -122,8 +122,8 @@ go env -w GOPROXY=https://goproxy.cn,direct
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
 
-export http_proxy=http://127.0.0.1:1081
-export https_proxy=http://127.0.0.1:1081
+#export http_proxy=http://127.0.0.1:1081
+#export https_proxy=http://127.0.0.1:1081
 
 
 export NVM_DIR="$HOME/.nvm"
@@ -134,5 +134,22 @@ export NVM_NODEJS_ORG_MIRROR=https://npm.taobao.org/mirrors/node
 
 alias sho='ssh -o ServerAliveInterval=60 '
 alias shozc='sho -p 7004 zczx@60.205.149.76'
+alias vim='nvim'
+alias tmux='TERM=screen-256color tmux -2'
+alias proxy='export all_proxy=http://127.0.0.1:1081'
+alias unproxy='unset all_proxy'
 
 export PATH="$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH"
+
+
+
+# brew 
+export HOMEBREW_BREW_GIT_REMOTE="https://mirrors.ustc.edu.cn/brew.git"
+export HOMEBREW_CORE_GIT_REMOTE="https://mirrors.ustc.edu.cn/homebrew-core.git"
+export HOMEBREW_BOTTLE_DOMAIN="https://mirrors.ustc.edu.cn/homebrew-bottles"
+brew tap --custom-remote --force-auto-update homebrew/cask https://mirrors.ustc.edu.cn/homebrew-cask.git
+brew tap --custom-remote --force-auto-update homebrew/cask-versions https://mirrors.ustc.edu.cn/homebrew-cask-versions.git
+
+
+
+
