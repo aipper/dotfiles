@@ -22,7 +22,7 @@ capabilities.textDocument.completion.completionItem.snippetSupport = true
 local util = require('lspconfig/util')
 -- setup languages
 -- GoLang
-lsp['gopls'].setup{
+lsp.gopls.setup{
   cmd = {'gopls','serve'},
   on_attach = on_attach,
   filetypes = {'go','gomod','gotmpl'},

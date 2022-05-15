@@ -50,15 +50,13 @@ local kind_icons = {
 cmp.setup {
   snippet = {
     -- luasnip
-    expand = function(args)
-      luasnip.lsp_expand(args.body) -- For `luasnip` users.
-    end,
-    -- vsnip
-    --[[
+    -- expand = function(args)
+    --   luasnip.lsp_expand(args.body) -- For `luasnip` users.
+    -- end,
+    -- -- vsnip
     expand = function(args)
       vim.fun["vsnip#anonymous"](args.body)
     end,
-    --]]
   },
   mapping = {
     ["<C-k>"] = cmp.mapping.select_prev_item(),
