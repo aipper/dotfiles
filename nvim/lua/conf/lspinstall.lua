@@ -3,27 +3,35 @@ if not  lsp_install_status  then
     return
 end
 
+-- local  servers = {
+--     gopls = require('conf.lspconf.gopls'),
+--     sumneko_lua = require('conf.lspconf.lua')
+-- }
 
-local  servers = {
-    gopls = require('conf.lspconf.gopls'),
-    sumneko_lua = require('conf.lspconf.lua')
-}
-
--- auto install  func
-for name, _ in pairs(servers) do
-  local server_is_found, server = lspInstall.get_server(name)
-  if server_is_found then
-    if not server:is_installed() then
-      print("Installing " .. name)
-      server:install()
-    end
-  end
-end
+-- for name ,config in pairs(servers) do
+--     if config ~=nil  and type(config) == 'table' then  
+--         local  tmpPath = vim.fn.stdpath('data')
+--         print('tmpPath',tmpPath)
+--         config.on_setup(lspconfig[name])
+--     else 
+--         lspconfig[name].setup({})
+--     end
+-- end auto install  func
+-- for name, _ in pairs(servers) do
+--   local server_is_found, server = lspInstall.get_server(name) if server_is_found then server:on_ready(function() local opts = vim.tbl_deep_extend('force',)
+--     end)
+--     if not server:is_installed() then
+--       print("Installing " .. name)
+--       server:install()
+--     end
+--   end
+-- end
+local servers = { 'gopls','sumneko_lua',}
 
 local DEFAULT_SETTINGS = {
     -- A list of servers to automatically install if they're not already installed. Example: { "rust_analyzer", "sumneko_lua" }
     -- This setting has no relation with the `automatic_installation` setting.
-    ensure_installed = {},
+    ensure_installed =  servers,
 
     -- Whether servers that are set up (via lspconfig) should be automatically installed if they're not already installed.
     -- This setting has no relation with the `ensure_installed` setting.
@@ -81,4 +89,9 @@ local DEFAULT_SETTINGS = {
 }
 
 lspInstall.setup(DEFAULT_SETTINGS)
+
+
+
+
+
 

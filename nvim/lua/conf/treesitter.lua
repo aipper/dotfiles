@@ -1,6 +1,6 @@
 local treesitter_status,treesitter = pcall(require,'nvim-treesitter')
-if not treesitter_status then 
-	return 
+if not treesitter_status then
+	return
 end
 treesitter.setup {
   -- A list of parser names, or "all"

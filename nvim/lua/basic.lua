@@ -38,3 +38,5 @@ vim.bo.tabstop = 2
 vim.o.softtabstop = 2
 vim.o.shiftwidth=4
 vim.o.shiftround = true
+--命令行高度设置
+vim.o.cmdheight = 4

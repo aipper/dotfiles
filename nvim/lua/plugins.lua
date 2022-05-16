@@ -75,7 +75,7 @@ return require('packer').startup({function()
   use 'mhinz/vim-startify'
 
    -- go 插件
-  use 'fatih/vim-go'
+  use {'fatih/vim-go' ,run=':GoInstallBinaries'}
   use 'tpope/vim-commentary'
   use 'tpope/vim-surround'
   use 'jiangmiao/auto-pairs'
@@ -115,6 +115,14 @@ return require('packer').startup({function()
       'folke/todo-comments.nvim',
         requires = "nvim-lua/plenary.nvim",
   }
+  -- github  ai
+  use {
+      'github/copilot.vim', run=":Copilot  setup"
+  }
+  --  断点调试
+  use  'mfussenegger/nvim-dap'
+  use  'theHamsta/nvim-dap-virtual-text'
+  use  'rcarriga/nvim-dap-ui'
 
 end,
 config={

@@ -30,7 +30,6 @@ nvim_tree.setup { -- BEGIN_DEFAULT_OPTS
       list = {
         -- user mappings go here
        -- {key= '<Space>e',action = ':NvimTreeToggle<CR>',mode='n'},
-        
       },
     },
   },

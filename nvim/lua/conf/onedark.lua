@@ -2,7 +2,7 @@
 --local onedark = require("onedark")
 local onedark_status ,onedark = pcall(require,'onedark')
 if not onedark_status then
-	return 
+	return
 end
 onedark.setup  {
     -- Main options --
