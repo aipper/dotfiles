@@ -108,11 +108,12 @@ cmp.setup {
       return vim_item
     end,
   },
-  sources = {
+  sources = cmp.config.sources({
+    { name = "nvim_lsp" },
     { name = "luasnip" },
     { name = "buffer" },
     { name = "path" },
-  },
+  }),
   confirm_opts = {
     behavior = cmp.ConfirmBehavior.Replace,
     select = false,
@@ -121,9 +122,11 @@ cmp.setup {
   --   border = { "╭", "─", "╮", "│", "╯", "─", "╰", "│" },
   -- },
   window ={
-      documentation = {
-        border = { "╭", "─", "╮", "│", "╯", "─", "╰", "│" },
-      }
+    completion = cmp.config.window.bordered(),
+    documentation = cmp.config.window.bordered(),
+      -- documentation = {
+      --   border = { "╭", "─", "╮", "│", "╯", "─", "╰", "│" },
+      -- }
   },
   experimental = {
     ghost_text = false,

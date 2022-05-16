@@ -123,6 +123,7 @@ return require('packer').startup({function()
   use  'mfussenegger/nvim-dap'
   use  'theHamsta/nvim-dap-virtual-text'
   use  'rcarriga/nvim-dap-ui'
+  use  'ray-x/lsp_signature.nvim'
 
 end,
 config={

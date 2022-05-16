@@ -164,6 +164,21 @@ _G.packer_plugins = {
     path = "/Users/ab/.local/share/nvim/site/pack/packer/start/nvim-colorizer.lua",
     url = "https://mirror.ghproxy.com/https://github.com/norcalli/nvim-colorizer.lua"
   },
+  ["nvim-dap"] = {
+    loaded = true,
+    path = "/Users/ab/.local/share/nvim/site/pack/packer/start/nvim-dap",
+    url = "https://mirror.ghproxy.com/https://github.com/mfussenegger/nvim-dap"
+  },
+  ["nvim-dap-ui"] = {
+    loaded = true,
+    path = "/Users/ab/.local/share/nvim/site/pack/packer/start/nvim-dap-ui",
+    url = "https://mirror.ghproxy.com/https://github.com/rcarriga/nvim-dap-ui"
+  },
+  ["nvim-dap-virtual-text"] = {
+    loaded = true,
+    path = "/Users/ab/.local/share/nvim/site/pack/packer/start/nvim-dap-virtual-text",
+    url = "https://mirror.ghproxy.com/https://github.com/theHamsta/nvim-dap-virtual-text"
+  },
   ["nvim-lsp-installer"] = {
     loaded = true,
     path = "/Users/ab/.local/share/nvim/site/pack/packer/start/nvim-lsp-installer",

@@ -16,3 +16,5 @@ require('conf.lspfuzzy')
 -- require('conf.lspinstall')
 require('conf.lspconf')
 require('conf.dap')
+require('conf.lsp_signature')
+

@@ -3,7 +3,7 @@
 local lsp_status,lsp = pcall(require,'lspconfig')
 local cmd = vim.api.nvim_command
 if not lsp_status then
-	return 
+	return
 end
 
 local on_attach = function(client, bufnr)
@@ -43,8 +43,8 @@ local on_attach = function(client, bufnr)
 end
 
 local cmp_vim_lsp_status,cmp_lsp = pcall(require,'cmp_nvim_lsp')
-if not cmp_vim_lsp_status then 
-	return 
+if not cmp_vim_lsp_status then
+	return
 end
 local capabilities = cmp_lsp.update_capabilities(vim.lsp.protocol.make_client_capabilities()) --nvim-cmp
 capabilities.textDocument.completion.completionItem.snippetSupport = true
@@ -55,7 +55,7 @@ local  opts = {
   cmd = {'gopls'},
   on_attach = on_attach,
   filetypes = {'go','gomod','gotmpl'},
-  -- root_dir = util.root_pattern('go.work','go.mod','.git'),
+  root_dir = util.root_pattern('go.work','go.mod','.git'),
   capabilities =  capabilities,
   sttings = {
     gopls = {

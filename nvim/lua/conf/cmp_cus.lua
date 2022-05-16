@@ -18,6 +18,7 @@ cmp.setup {
       -- require'snippy'.expand_snippet(args.body)
     end,
   },
+  
   -- 来源
   sources = cmp.config.sources({
     { name = 'nvim_lsp' },
