@@ -46,30 +46,36 @@ local cmp_vim_lsp_status,cmp_lsp = pcall(require,'cmp_nvim_lsp')
 if not cmp_vim_lsp_status then
 	return
 end
+
+vim.g.go_gopls_enabled = 0
+
 local capabilities = cmp_lsp.update_capabilities(vim.lsp.protocol.make_client_capabilities()) --nvim-cmp
 capabilities.textDocument.completion.completionItem.snippetSupport = true
 local util = require('lspconfig/util')
 -- setup languages
 -- GoLang
 local  opts = {
-  cmd = {'gopls'},
+  -- cmd = {'gopls'},
   on_attach = on_attach,
-  filetypes = {'go','gomod','gotmpl'},
-  root_dir = util.root_pattern('go.work','go.mod','.git'),
-  capabilities =  capabilities,
-  sttings = {
-    gopls = {
-      experimentalPostfixCompletions = true,
-      analyses = {
-        unusedparams = true,
-        shadow = true
-      },
-      staticcheck = true
-    },
-    init_options = {
-      usePlaceholders = true
-    }
+  -- filetypes = {'go','gomod','gotmpl'},
+  -- root_dir = util.root_pattern('go.work','go.mod','.git'),
+  -- capabilities =  capabilities,
+  flags = {
+      debounce_text_changes = 150
   }
+  -- sttings = {
+  --   gopls = {
+  --     experimentalPostfixCompletions = true,
+  --     analyses = {
+  --       unusedparams = true,
+  --       shadow = true
+  --     },
+  --     staticcheck = true
+  --   },
+  --   init_options = {
+  --     usePlaceholders = true
+  --   }
+  -- }
 }
 return opts
 
