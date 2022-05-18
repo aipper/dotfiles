@@ -143,6 +143,9 @@ alias tmux='TERM=screen-256color tmux -2'
 alias proxy='export all_proxy=http://127.0.0.1:1081'
 alias unproxy='unset all_proxy'
 
+alias  mvnd = 'mvn clean deploy -Dmaven.test.skip=true -Dmaven.compile.fork=true -T 1C'
+alias  mvnp = 'mvn clean package  -Dmaven.test.skip=true -Dmaven.compile.fork=true -T 1C'
+
 export PATH="$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH"
 
 
