@@ -18,7 +18,7 @@ lspInstall.setup({
 })
 
 for  _,server  in pairs(servers) do
-    	local opts = {
+    local opts = {
 		on_attach = require("conf.lspconf.handler").on_attach,
 		capabilities = require("conf.lspconf.handler").capabilities,
 	}
