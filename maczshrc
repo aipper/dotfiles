@@ -144,7 +144,7 @@ alias proxy='export all_proxy=http://127.0.0.1:1081'
 alias unproxy='unset all_proxy'
 
 alias  mvnd='mvn clean deploy -Dmaven.test.skip=true -Dmaven.compile.fork=true -T 1C'
-alias  mvnp='mvn clean package  -Dmaven.test.skip=true -Dmaven.compile.fork=true -T 1C'
+alias  mvnc='mvn clean package  -Dmaven.test.skip=true -Dmaven.compile.fork=true -T 1C'
 alias  mvnp='mvn dependency:purge-local-repository'
 
 export PATH="$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH"
@@ -178,3 +178,6 @@ unset __conda_setup
 export PNPM_HOME="/Users/ab/Library/pnpm"
 export PATH="$PNPM_HOME:$PATH"
 # pnpm end
+#
+# proxy
+sh  ~/sh/proxy.sh
