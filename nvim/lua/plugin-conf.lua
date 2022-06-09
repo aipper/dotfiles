@@ -17,4 +17,4 @@ require('conf.lspfuzzy')
 require('conf.lspconf')
 require('conf.dap')
 require('conf.lsp_signature')
-
+require('conf.git')

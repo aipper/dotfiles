@@ -124,6 +124,9 @@ return require('packer').startup({function()
   use  'theHamsta/nvim-dap-virtual-text'
   use  'rcarriga/nvim-dap-ui'
   use  'ray-x/lsp_signature.nvim'
+  -- js
+  use  'leafgarland/typescript-vim'
+  use  'peitalin/vim-jsx-typescript'
 
 end,
 config={

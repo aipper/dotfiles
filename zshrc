@@ -107,5 +107,7 @@ export NVM_NODEJS_ORG_MIRROR=http://npm.taobao.org/mirrors/node
 export GOPROXY=https://proxy.golang.com.cn,direct
 
 
+
+alias gtt="git config credential.helper 'cache --timeout=3600000'"
 alias vim='nvim'
 alias tmux='TERM=screen-256color tmux -2'
