@@ -106,8 +106,14 @@ export NVM_NODEJS_ORG_MIRROR=http://npm.taobao.org/mirrors/node
 
 export GOPROXY=https://proxy.golang.com.cn,direct
 
+export MAVEN_HOME=~/soft/maven
 
 
 alias gtt="git config credential.helper 'cache --timeout=3600000'"
 alias vim='nvim'
 alias tmux='TERM=screen-256color tmux -2'
+
+# pnpm
+export PNPM_HOME="/root/.local/share/pnpm"
+export PATH="$PNPM_HOME:$PATH:$MAVEN_HOME/bin"
+# pnpm end

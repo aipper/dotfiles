@@ -128,6 +128,9 @@ return require('packer').startup({function()
   use  'leafgarland/typescript-vim'
   use  'peitalin/vim-jsx-typescript'
 
+  --  格式化
+  use  'prettier/vim-prettier'
+
 end,
 config={
   git = {
