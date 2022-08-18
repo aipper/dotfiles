@@ -95,7 +95,7 @@ return require('packer').startup({function()
   -- terminal
   --
   use {
-    'akinsho/toggleterm.nvim',tag = 'v1.*',config = function()
+    'akinsho/toggleterm.nvim',tag = 'v2.*',config = function()
       require('toggleterm').setup()
     end
   }
@@ -134,7 +134,8 @@ return require('packer').startup({function()
 end,
 config={
   git = {
-      default_url_format = "https://mirror.ghproxy.com/https://github.com/%s",
+      depth  = 1,
+      default_url_format = 'https://github.com/%s'
   }
 }
 })
