@@ -1,6 +1,6 @@
 local fn = vim.fn
 local install_path = fn.stdpath("data") .. "/site/pack/packer/start/packer.nvim"
-local paccker_bootstrap
+
 if fn.empty(fn.glob(install_path)) > 0 then
   vim.notify("正在安装Pakcer.nvim，请稍后...")
   paccker_bootstrap = fn.system({
@@ -8,7 +8,7 @@ if fn.empty(fn.glob(install_path)) > 0 then
     "clone",
     "--depth",
     "1", -- "https://github.com/wbthomason/packer.nvim",
-    "https://gitcode.net/mirrors/wbthomason/packer.nvim",
+    "https://github.com/wbthomason/packer.nvim",
     install_path,
   })
 
@@ -21,7 +21,9 @@ if fn.empty(fn.glob(install_path)) > 0 then
 end
 
 vim.cmd [[packadd packer.nvim]]
-return require('packer').startup({function()
+
+return require('packer').startup({
+    function(use)
   use 'wbthomason/packer.nvim'
   use 'williamboman/nvim-lsp-installer'
   use 'neovim/nvim-lspconfig'
@@ -30,7 +32,6 @@ return require('packer').startup({function()
 
   -- buffer栏插件
   use {'akinsho/bufferline.nvim', tag = "v2.*", requires = 'kyazdani42/nvim-web-devicons'}
-  
   -- 补全插件
   use("hrsh7th/nvim-cmp")
 
@@ -48,7 +49,6 @@ return require('packer').startup({function()
     'nvim-lua/plenary.nvim'
     }
   }
-  
   -- LuaSnip
   use('L3MON4D3/LuaSnip')
   use('saadparwaiz1/cmp_luasnip')
@@ -86,7 +86,7 @@ return require('packer').startup({function()
   use  {'lewis6991/gitsigns.nvim',tag = 'release'}
 
 
--- autosave 
+-- autosave
   use '907th/vim-auto-save'
   use {
       'nvim-telescope/telescope.nvim',
@@ -110,14 +110,10 @@ return require('packer').startup({function()
   use 'rcarriga/nvim-notify'
   -- css color
   use {'norcalli/nvim-colorizer.lua' }
-  --  todo 
+  --  todo
   use {
       'folke/todo-comments.nvim',
         requires = "nvim-lua/plenary.nvim",
-  }
-  -- github  ai
-  use {
-      'github/copilot.vim', run=":Copilot  setup"
   }
   --  断点调试
   use  'mfussenegger/nvim-dap'
@@ -132,10 +128,9 @@ return require('packer').startup({function()
   use  'prettier/vim-prettier'
 
 end,
-config={
+config = {
   git = {
-      depth  = 1,
-      default_url_format = 'https://github.com/%s'
+      default_url_format  = 'https://ghproxy.com/https://github.com/%s'
   }
 }
 })
