@@ -107,7 +107,8 @@ export NVM_NODEJS_ORG_MIRROR=http://npm.taobao.org/mirrors/node
 export GOPROXY=https://proxy.golang.com.cn,direct
 
 export MAVEN_HOME=~/soft/maven
-
+export TERMINFO=/usr/share/terminfo
+export TERM=vt100
 
 alias gtt="git config credential.helper 'cache --timeout=3600000'"
 alias vim='nvim'
