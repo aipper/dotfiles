@@ -129,8 +129,8 @@ return require('packer').startup({
 
 end,
 config = {
-  git = {
-      default_url_format  = 'https://ghproxy.com/https://github.com/%s'
-  }
+--  git = {
+ --     default_url_format  = 'https://ghproxy.com/https://github.com/%s'
+  --}
 }
 })

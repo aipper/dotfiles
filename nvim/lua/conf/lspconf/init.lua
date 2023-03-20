@@ -10,7 +10,7 @@ end
 require('conf.lspconf.handler').setup()
 
 
-local  servers  = {'gopls','sumneko_lua',"volar","java_language_server","kotlin_language_server","pylsp","tailwindcss","tsserver","rust_analyzer"}
+local  servers  = {'gopls','lua_ls',"volar","java_language_server","kotlin_language_server","pylsp","tailwindcss","tsserver","rust_analyzer"}
 
 lspInstall.setup({
     ensure_installed =  servers,
