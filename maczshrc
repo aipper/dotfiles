@@ -155,10 +155,10 @@ export PATH="$JAVA_19_HOME:$PATH"
 export JAVA_7_HOME=`/usr/libexec/java_home -v 1.7`
 export JAVA_8_HOME=`/usr/libexec/java_home -v 1.8`
 
-alias  jdk8='export JAVA_HOME=$JAVA_8_HOME'
 alias  jdk7='export JAVA_HOME=$JAVA_7_HOME'
 alias  jdk19='export  JAVA_HOME=$JAVA_19_HOME'
 
+alias  jdk8='export JAVA_HOME=$JAVA_8_HOME'
 
 export PATH="$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH"
 
