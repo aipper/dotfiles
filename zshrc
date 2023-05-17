@@ -113,6 +113,7 @@ export TERM=vt100
 alias gtt="git config credential.helper 'cache --timeout=3600000'"
 alias vim='nvim'
 alias tmux='TERM=screen-256color tmux -2'
+alias sho='ssh -o ServerAliveInterval=60 '
 
 # pnpm
 export PNPM_HOME="/root/.local/share/pnpm"
