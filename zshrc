@@ -12,8 +12,7 @@ ZSH_THEME="random"
 
 # Set list of themes to pick from when loading at random
 # Setting this variable when ZSH_THEME=random will cause zsh to load
-# a theme from this variable instead of looking in $ZSH/themes/
-# If set to an empty array, this variable will have no effect.
+# a theme from this variable instead of looking in $ZSH/themes/ If set to an empty array, this variable will have no effect.
 # ZSH_THEME_RANDOM_CANDIDATES=( "robbyrussell" "agnoster" )
 
 # Uncomment the following line to use case-sensitive completion.
@@ -109,6 +108,7 @@ export GOPROXY=https://proxy.golang.com.cn,direct
 export MAVEN_HOME=~/soft/maven
 export TERMINFO=/usr/share/terminfo
 export TERM=vt100
+export AWS_PAAS_HOME_HFKYSC=/data/aws
 
 alias gtt="git config credential.helper 'cache --timeout=3600000'"
 alias vim='nvim'
@@ -138,3 +138,4 @@ unset __conda_setup
 # <<< conda initialize <<<
 
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+
