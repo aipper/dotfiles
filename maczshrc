@@ -119,7 +119,7 @@ export GOPATH=~/work/go
 
 export PATH=$PATH:$MVN_HOME/bin:$GRADLE_HOME/bin:$GO_HOME/bin
 
-go env GO111MODULE=on
+go env -w GO111MODULE=on
 go env -w GOPROXY=https://goproxy.cn,direct
 
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
