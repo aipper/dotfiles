@@ -121,6 +121,7 @@ alias unproxy='unset all_proxy'
 export PNPM_HOME="/root/.local/share/pnpm"
 export PATH="$PNPM_HOME:$PATH:$MAVEN_HOME/bin"
 # pnpm end
+nvm use default
 
 # >>> conda initialize >>>
 # !! Contents within this block are managed by 'conda init' !!
