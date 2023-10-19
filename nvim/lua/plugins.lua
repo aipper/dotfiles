@@ -25,8 +25,10 @@ vim.cmd [[packadd packer.nvim]]
 return require('packer').startup({
     function(use)
   use 'wbthomason/packer.nvim'
-  use 'williamboman/nvim-lsp-installer'
+--   use 'williamboman/nvim-lsp-installer'
   use 'neovim/nvim-lspconfig'
+  use 'williamboman/mason.nvim'
+  use 'williamboman/mason-lspconfig.nvim'
 
  -- use 'preservim/nerdtree'
 

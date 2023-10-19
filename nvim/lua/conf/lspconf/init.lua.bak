@@ -2,7 +2,7 @@ local status_ok, lspconfig = pcall(require, "lspconfig")
 if not status_ok then
 	return
 end
-local lspInstallStatus ,lspInstall  = pcall(require,'nvim-lsp-installer')
+local lspInstallStatus ,lspInstall  = pcall(require,'mason-lspconfig')
 if  not  lspInstallStatus then
     return
 end
