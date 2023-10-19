@@ -90,7 +90,7 @@ return require('packer').startup({
   use '907th/vim-auto-save'
   use {
       'nvim-telescope/telescope.nvim',
-      requires = { {'nvim-lua/plenary.nvim'} }
+      requires = { 'nvim-lua/plenary.nvim' }
     }
   -- terminal
   --

@@ -6,5 +6,12 @@ end
 
 telescope.setup{
   defaults={
+  },
+  extensions={
+
   }
 }
+
+
+
+pcall(telescope.load_extension,'notify')

@@ -15,19 +15,11 @@ nvim_tree.setup { -- BEGIN_DEFAULT_OPTS
   update_cwd = false,
   view = {
     width = 30,
-    hide_root_folder = false,
     side = "left",
     preserve_window_proportions = false,
     number = false,
     relativenumber = false,
     signcolumn = "yes",
-    mappings = {
-      custom_only = false,
-      list = {
-        -- user mappings go here
-       -- {key= '<Space>e',action = ':NvimTreeToggle<CR>',mode='n'},
-      },
-    },
   },
   renderer = {
     indent_markers = {
