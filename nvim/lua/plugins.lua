@@ -131,13 +131,16 @@ return require('packer').startup({
 
   if packer_bootstrap then 
     require('packer').sync()
-   end 
+   end
 
 
 end,
 config = {
---  git = {
- --     default_url_format  = 'https://ghproxy.com/https://github.com/%s'
-  --}
-}
+  git = {
+       default_url_format = 'git@github.com:%s'
+        }
+    },
+     display = {
+    open_fn = require('packer.util').float,
+  }
 })
