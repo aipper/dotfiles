@@ -140,3 +140,5 @@ unset __conda_setup
 
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 
+
+PATH=~/.console-ninja/.bin:$PATH
