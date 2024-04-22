@@ -129,6 +129,11 @@ return require('packer').startup({
   --  格式化
   use  'prettier/vim-prettier'
 
+  if packer_bootstrap then 
+    require('packer').sync()
+   end 
+
+
 end,
 config = {
 --  git = {
