@@ -1,146 +1,121 @@
 local fn = vim.fn
-local install_path = fn.stdpath("data") .. "/site/pack/packer/start/packer.nvim"
+local install_path = fn.stdpath("data") .. "/lazy/lazy.nvim"
 
-if fn.empty(fn.glob(install_path)) > 0 then
-  vim.notify("正在安装Pakcer.nvim，请稍后...")
-  paccker_bootstrap = fn.system({
+if not (vim.uv or vim.loop).fs_stat(install_path) then
+   vim.notify("正在安装lazy.nvim，请稍后...")
+   fn.system({
     "git",
     "clone",
-    "--depth",
-    "1", -- "https://github.com/wbthomason/packer.nvim",
-    "https://github.com/wbthomason/packer.nvim",
+    "--filter=blob:none",
+    "https://github.com/folke/lazy.nvim.git",
+    "--branch=stable",
     install_path,
   })
-
-  -- https://github.com/wbthomason/packer.nvim/issues/750
-  local rtp_addition = vim.fn.stdpath("data") .. "/site/pack/*/start/*"
-  if not string.find(vim.o.runtimepath, rtp_addition) then
-    vim.o.runtimepath = rtp_addition .. "," .. vim.o.runtimepath
-  end
-  vim.notify("Pakcer.nvim 安装完毕")
 end
+vim.opt.rtp:prepend(install_path)
 
-vim.cmd [[packadd packer.nvim]]
 
-return require('packer').startup({
-    function(use)
-  use 'wbthomason/packer.nvim'
---   use 'williamboman/nvim-lsp-installer'
-  use 'neovim/nvim-lspconfig'
-  use 'williamboman/mason.nvim'
-  use 'williamboman/mason-lspconfig.nvim'
-
- -- use 'preservim/nerdtree'
+require('lazy').setup({
+  {'wbthomason/packer.nvim'},
+--   {williamboman/nvim-lsp-installer'
+  {'neovim/nvim-lspconfig'},
+  {'williamboman/mason.nvim'},
+  {'williamboman/mason-lspconfig.nvim'},
 
   -- buffer栏插件
-  use {'akinsho/bufferline.nvim', tag = "v2.*", requires = 'kyazdani42/nvim-web-devicons'}
+  {'akinsho/bufferline.nvim', version  = "v2.*", dependencies = 'kyazdani42/nvim-web-devicons'},
   -- 补全插件
-  use("hrsh7th/nvim-cmp")
+  {"hrsh7th/nvim-cmp"},
 
   -- 补全源
-  use("hrsh7th/cmp-vsnip")
-  use("hrsh7th/cmp-nvim-lsp") -- { name = nvim_lsp }
-  use("hrsh7th/cmp-buffer") -- { name = 'buffer' },
-  use("hrsh7th/cmp-path") -- { name = 'path' }
-  use("hrsh7th/cmp-cmdline") -- { name = 'cmdline' }
-  use("hrsh7th/cmp-nvim-lsp-signature-help") -- { name = 'nvim_lsp_signature_help' }
-  use('onsails/lspkind-nvim')
-  use {
+  {"hrsh7th/cmp-vsnip"},
+  {"hrsh7th/cmp-nvim-lsp"},-- { name = nvim_lsp }
+  {"hrsh7th/cmp-buffer"}, -- { name = 'buffer' },
+  {"hrsh7th/cmp-path"}, -- { name = 'path' }
+  {"hrsh7th/cmp-cmdline"}, -- { name = 'cmdline' }
+  {"hrsh7th/cmp-nvim-lsp-signature-help"}, -- { name = 'nvim_lsp_signature_help' }
+  {'onsails/lspkind-nvim'},
+  {
   'David-Kunz/cmp-npm',
-  requires = {
+  dependencies = {
     'nvim-lua/plenary.nvim'
     }
-  }
+  },
   -- LuaSnip
-  use('L3MON4D3/LuaSnip')
-  use('saadparwaiz1/cmp_luasnip')
+  {'L3MON4D3/LuaSnip'},
+  {'saadparwaiz1/cmp_luasnip'},
 
   --  lua增强
-  use("folke/lua-dev.nvim")
+  {"folke/lua-dev.nvim"},
 
   -- onedark 主题
-  use('navarasu/onedark.nvim')
+  {'navarasu/onedark.nvim'},
 
   -- vim-tree
-  use {
+  {
     'kyazdani42/nvim-tree.lua',
-    requires = 'kyazdani42/nvim-web-devicons',
-  }
+    dependencies = 'kyazdani42/nvim-web-devicons',
+  },
 
   -- treesitter
-  use { 'nvim-treesitter/nvim-treesitter', run = ':TSUpdate' }
-  use { 'vim-airline/vim-airline'}
-  use {'vim-airline/vim-airline-themes'}
-  use 'preservim/tagbar'
+  { 'nvim-treesitter/nvim-treesitter', build = ':TSUpdate' },
+  { 'vim-airline/vim-airline'},
+  {'vim-airline/vim-airline-themes'},
+  {'preservim/tagbar'},
 
   -- 开屏页面
-  use 'mhinz/vim-startify'
+  {'mhinz/vim-startify'},
 
    -- go 插件
-  use {'fatih/vim-go' ,run=':GoInstallBinaries'}
-  use 'tpope/vim-commentary'
-  use 'tpope/vim-surround'
-  use 'jiangmiao/auto-pairs'
+  {'fatih/vim-go' ,build =':GoInstallBinaries'},
+  {'tpope/vim-commentary'},
+  {'tpope/vim-surround'},
+  {'jiangmiao/auto-pairs'},
 
 -- git 插件
-  -- use 'f-person/git-blame.nvim'
-  -- use 'kdheepak/lazygit.nvim'
-  use  {'lewis6991/gitsigns.nvim',tag = 'release'}
+  -- {f-person/git-blame.nvim'
+  -- {kdheepak/lazygit.nvim'
+  {'lewis6991/gitsigns.nvim',version = 'release'},
 
 
 -- autosave
-  use '907th/vim-auto-save'
-  use {
+  {'907th/vim-auto-save'},
+  {
       'nvim-telescope/telescope.nvim',
-      requires = { 'nvim-lua/plenary.nvim' }
-    }
+      dependencies = { 'nvim-lua/plenary.nvim' }
+    },
   -- terminal
   --
-  use {
-    'akinsho/toggleterm.nvim',tag = 'v2.*',config = function()
-      require('toggleterm').setup()
+  {
+    'akinsho/toggleterm.nvim',version = 'v2.*',config = function()
+      require('toggleterm').init()
     end
-  }
-  use {
+  },
+  {
     'ojroques/nvim-lspfuzzy',
-    requires = {
+    dependencies = {
         {'junegunn/fzf'},
         {'junegunn/fzf.vim'},  -- to enable preview (optional)
     },
-  }
+  },
   -- notify
-  use 'rcarriga/nvim-notify'
+  {'rcarriga/nvim-notify'},
   -- css color
-  use {'norcalli/nvim-colorizer.lua' }
+  {'norcalli/nvim-colorizer.lua' },
   --  todo
-  use {
+  {
       'folke/todo-comments.nvim',
-        requires = "nvim-lua/plenary.nvim",
-  }
+        dependencies = "nvim-lua/plenary.nvim",
+  },
   --  断点调试
-  use  'mfussenegger/nvim-dap'
-  use  'theHamsta/nvim-dap-virtual-text'
-  use  'rcarriga/nvim-dap-ui'
-  use  'ray-x/lsp_signature.nvim'
+  {'mfussenegger/nvim-dap'},
+  {'theHamsta/nvim-dap-virtual-text'},
+  {'rcarriga/nvim-dap-ui'},
+  {'ray-x/lsp_signature.nvim'},
   -- js
-  use  'leafgarland/typescript-vim'
-  use  'peitalin/vim-jsx-typescript'
+  {'leafgarland/typescript-vim'},
+  {'peitalin/vim-jsx-typescript'},
 
   --  格式化
-  use  'prettier/vim-prettier'
-
-  if packer_bootstrap then 
-    require('packer').sync()
-   end
-
-
-end,
-config = {
-  git = {
-       default_url_format = 'git@github.com:%s'
-        }
-    },
-     display = {
-    open_fn = require('packer.util').float,
-  }
+  {'prettier/vim-prettier'},
 })
