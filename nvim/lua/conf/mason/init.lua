@@ -9,7 +9,7 @@ require('conf.mason.gopls')
 
 require('conf.mason.handler').setup()
 
-local servers =  {'docker_compose_language_service','lua_ls','gopls'}
+local servers =  {'docker_compose_language_service','lua_ls','gopls','pyright'}
 require('mason-lspconfig').setup({
     ensure_installed=servers,
     automatic_installation = true,

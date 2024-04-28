@@ -194,3 +194,4 @@ export PATH="$CONDA_PATH/bin:$JAVA_HOME/bin:$PNPM_HOME:$PATH"
 export TERMINFO=/usr/share/terminfo
 # proxy
 sh  ~/sh/proxy.sh
+proxy

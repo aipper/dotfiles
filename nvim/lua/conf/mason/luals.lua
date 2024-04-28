@@ -26,7 +26,14 @@ local  opt = {
       client.notify("workspace/didChangeConfiguration", { settings = client.config.settings })
     end
     return true
-  end
+  end,
+  settings = {
+      lua ={
+           diagnostics = {
+                globals = { 'vim' }
+            }
+      }
+  }
 }
 
 return opt
