@@ -1,7 +1,7 @@
 local fn = vim.fn
 local install_path = fn.stdpath("data") .. "/lazy/lazy.nvim"
 
-if not (vim.uv or vim.loop).fs_stat(install_path) then
+if not vim.loop.fs_stat(install_path) then
    vim.notify("正在安装lazy.nvim，请稍后...")
    fn.system({
     "git",
