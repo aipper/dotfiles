@@ -115,7 +115,7 @@ alias vim='nvim'
 alias tmux='TERM=screen-256color tmux -2'
 alias sho='ssh -o ServerAliveInterval=60 '
 
-alias proxy='export  all_proxy=socks5://192.168.31.199:1080'
+alias proxy='export  all_proxy=socks5://localhost:1080'
 alias unproxy='unset all_proxy'
 # pnpm
 export PNPM_HOME="/root/.local/share/pnpm"
