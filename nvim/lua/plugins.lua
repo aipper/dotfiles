@@ -63,6 +63,7 @@ require('lazy').setup({
   {'vim-airline/vim-airline-themes'},
   {'preservim/tagbar'},
 
+
   -- 开屏页面
   {'mhinz/vim-startify'},
 
@@ -116,4 +117,6 @@ require('lazy').setup({
 
   --  格式化
   {'prettier/vim-prettier'},
+  -- rust
+  {'simrat39/rust-tools.nvim'}
 })
