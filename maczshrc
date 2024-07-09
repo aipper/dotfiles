@@ -115,8 +115,9 @@ export MVN_HOME=~/soft/mvn
 export GO_HOME=~/soft/go
 export GOROOT=~/soft/go
 export GOPATH=~/work/go
+export LOCAL_HOME=~/.local
 
-export PATH=$PATH:$MVN_HOME/bin:$GRADLE_HOME/bin:$GO_HOME/bin
+export PATH=$PATH:$MVN_HOME/bin:$GRADLE_HOME/bin:$GO_HOME/bin:$LOCAL_HOME/bin
 
 go env -w GO111MODULE=on
 go env -w GOPROXY=https://goproxy.cn,direct
@@ -155,8 +156,6 @@ export JAVA_20_HOME=`/usr/libexec/java_home -v 20`
 alias  jdk7='export JAVA_HOME=$JAVA_7_HOME'
 alias  jdk8='export JAVA_HOME=$JAVA_8_HOME'
 alias  jdk20='export JAVA_HOME=$JAVA_20_HOME'
-
-export CONDA_PATH=/usr/local/anaconda3
 jdk8
 
 
