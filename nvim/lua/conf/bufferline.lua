@@ -4,16 +4,26 @@ if not buffer_status then
 end
 
 vim.opt.termguicolors = true
+options = {
+		close_command = "bdelete! %d",       -- 点击关闭按钮关闭
+		right_mouse_command = "bdelete! %d", -- 右键点击关闭
+		indicator = {
+			icon = '▎', -- 分割线
+			style = 'underline',
+		},
+		buffer_close_icon = '󰅖',
+		modified_icon = '●',
+		close_icon = '',
+		offsets = {
+			{
+				filetype = "NvimTree",
+				text = "File Explorer" ,
+				text_align = "left",
+				separator = true,
+			}
+		},
+}
 bufferline.setup {
-    options = {
-        -- 使用 nvim 内置lsp
-        diagnostics = "nvim_lsp",
-        -- 左侧让出 nvim-tree 的位置
-        offsets = {{
-            filetype = "NvimTree",
-            text = "File Explorer",
-            highlight = "Directory",
-            text_align = "left"
-        }}
-    }
+    options = options
+
 }

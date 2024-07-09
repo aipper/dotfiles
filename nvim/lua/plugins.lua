@@ -118,5 +118,9 @@ require('lazy').setup({
   --  格式化
   {'prettier/vim-prettier'},
   -- rust
-  {'simrat39/rust-tools.nvim'}
+  {'simrat39/rust-tools.nvim'},
+  {
+    'nvim-lualine/lualine.nvim',
+    dependencies = { 'nvim-tree/nvim-web-devicons' }
+    }
 })
