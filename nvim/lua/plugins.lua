@@ -23,7 +23,7 @@ require('lazy').setup({
   {'williamboman/mason-lspconfig.nvim'},
 
   -- buffer栏插件
-  {'akinsho/bufferline.nvim', version  = "v2.*", dependencies = 'kyazdani42/nvim-web-devicons'},
+  {'akinsho/bufferline.nvim', version = "*", dependencies = 'nvim-tree/nvim-web-devicons'},
   -- 补全插件
   {"hrsh7th/nvim-cmp"},
 
