@@ -137,7 +137,6 @@ export NVM_DIR="$HOME/.nvm"
 export NVM_NODEJS_ORG_MIRROR=https://npm.taobao.org/mirrors/node
 
 alias sho='ssh -o ServerAliveInterval=60 '
-alias shozc='sho -p 7004 zczx@60.205.149.76'
 alias vim='nvim'
 alias tmux='TERM=screen-256color tmux -2'
 alias proxy='export all_proxy=http://127.0.0.1:1081'
@@ -167,24 +166,10 @@ export PATH="$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH:$
 export HOMEBREW_BREW_GIT_REMOTE="https://mirrors.ustc.edu.cn/brew.git"
 export HOMEBREW_CORE_GIT_REMOTE="https://mirrors.ustc.edu.cn/homebrew-core.git"
 export HOMEBREW_BOTTLE_DOMAIN="https://mirrors.ustc.edu.cn/homebrew-bottles"
+export HOMEBREW_API_DOMAIN="https://mirrors.ustc.edu.cn/homebrew-bottles/api"
 brew tap --custom-remote --force-auto-update homebrew/cask https://mirrors.ustc.edu.cn/homebrew-cask.git
-brew tap --custom-remote --force-auto-update homebrew/cask-versions https://mirrors.ustc.edu.cn/homebrew-cask-versions.git
+brew tap --custom-remote --force-auto-update homebrew/services https://mirrors.ustc.edu.cn/homebrew-services.git
 
-
-
-__conda_setup="$('/Users/ab/opt/anaconda3/bin/conda' 'shell.zsh' 'hook' 2> /dev/null)"
-if [ $? -eq 0 ]; then
-    eval "$__conda_setup"
-else
-    if [ -f "/Users/ab/opt/anaconda3/etc/profile.d/conda.sh" ]; then
-        . "/Users/ab/opt/anaconda3/etc/profile.d/conda.sh"
-    else
-        export PATH="/Users/ab/opt/anaconda3/bin:$PATH"
-    fi
-fi
-unset __conda_setup
-# <<< conda initialize <<<
-#
 
 # pnpm
 export PNPM_HOME="/Users/ab/Library/pnpm"
