@@ -108,6 +108,7 @@ require('lazy').setup({
   },
   --  断点调试
   {'mfussenegger/nvim-dap'},
+  {'mfussenegger/nvim-jdtls'},
   {'theHamsta/nvim-dap-virtual-text'},
   {'rcarriga/nvim-dap-ui'},
   {'ray-x/lsp_signature.nvim'},
