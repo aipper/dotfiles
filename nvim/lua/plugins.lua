@@ -59,13 +59,15 @@ require('lazy').setup({
 
   -- treesitter
   { 'nvim-treesitter/nvim-treesitter', build = ':TSUpdate' },
+{'p00f/nvim-ts-rainbow'},
+{'windwp/nvim-autopairs'},
   { 'vim-airline/vim-airline'},
   {'vim-airline/vim-airline-themes'},
   {'preservim/tagbar'},
 
 
   -- 开屏页面
-  {'mhinz/vim-startify'},
+  {'mhinz/vim-startify'}  ,
 
    -- go 插件
   {'fatih/vim-go' ,build =':GoInstallBinaries'},
@@ -108,6 +110,7 @@ require('lazy').setup({
   },
   --  断点调试
   {'mfussenegger/nvim-dap'},
+  -- {'puremourning/vimspector'},
   {'mfussenegger/nvim-jdtls'},
   {'theHamsta/nvim-dap-virtual-text'},
   {'rcarriga/nvim-dap-ui'},
@@ -119,7 +122,13 @@ require('lazy').setup({
   --  格式化
   {'prettier/vim-prettier'},
   -- rust
-  {'simrat39/rust-tools.nvim'},
+  -- {'simrat39/rust-tools.nvim'},
+  {
+      'mrcjkb/rustaceanvim',
+  version = '^5', -- Recommended
+  lazy = false, -- This plugin is already lazy
+  },
+
   {
     'nvim-lualine/lualine.nvim',
     dependencies = { 'nvim-tree/nvim-web-devicons' }

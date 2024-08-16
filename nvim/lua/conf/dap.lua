@@ -18,3 +18,6 @@ dap.configurations.go = {
     dlvToolPath = vim.fn.exepath('dlv')  -- Adjust to where delve is installed
   },
 }
+
+
+

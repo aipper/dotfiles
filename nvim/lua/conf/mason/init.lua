@@ -5,6 +5,7 @@ if not status_ok then
 end
 require('conf.mason.luals')
 require('conf.mason.gopls')
+require('conf.mason.rust')
 
 
 require('conf.mason.handler').setup()
