@@ -119,7 +119,9 @@ alias proxy='export  all_proxy=socks5://localhost:1080'
 alias unproxy='unset all_proxy'
 # pnpm
 export PNPM_HOME="/root/.local/share/pnpm"
-export PATH="$PNPM_HOME:$PATH:$MAVEN_HOME/bin"
+#cargo
+export CARGO_HOME="$HOME/.cargo"
+export PATH="$PNPM_HOME:$PATH:$MAVEN_HOME/bin:$CARGO_HOME/bin"
 # pnpm end
 nvm use default
 export EDITOR=vim
