@@ -1,5 +1,3 @@
-
-
 local map = vim.api.nvim_set_keymap
 
 local opt = {noremap = true, silent = true }
@@ -29,11 +27,16 @@ map('n','<leader>td',':TodoTelescope<cr>',opt)
 --map('n','<leader>/',[[<cmd>lua require('telescope.builtin').current_buffer_fuzzy_find()<cr>]],{})
 
 
-
-
 --map('n','<leader>e',':Lex 30<cr>',opt)
 
 
 
 -- insert
 map('i','jk','<ESC>',opt)
+
+-- 添加这行来查看通知历史
+map('n', '<leader>nh', '<cmd>lua require("notify").history()<CR>', opt)
+
+map('n', '<leader>nl', '<cmd>lua require("notify").last()<CR>', opt)
+
+map('n', '<leader>fn', '<cmd>Telescope notify<CR>', opt)

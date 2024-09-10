@@ -12,8 +12,10 @@ require('conf.todocomment')
 require('conf.lspfuzzy')
 require('conf.dap')
 require('conf.lsp_signature')
-require('conf.git')
-require('conf.mason')
-require('conf.mason.init')
+require('conf.lazygit')
 require('conf.bufferline')
 require('conf.lualine')
+
+-- 确保这些配置按照以下顺序加载
+require('conf.mason')
+require('conf.lspconfig')  -- 这应该包含您的 LSP 服务器设置

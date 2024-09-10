@@ -1,30 +1,37 @@
-
-local status_ok, lspconfig = pcall(require, "lspconfig")
-if not status_ok then
+local mason_status_ok, mason = pcall(require, "mason")
+if not mason_status_ok then
 	return
 end
-require('conf.mason.luals')
-require('conf.mason.gopls')
-require('conf.mason.rust')
 
+mason.setup()
 
-require('conf.mason.handler').setup()
+local mason_lspconfig_status, mason_lspconfig = pcall(require, 'mason-lspconfig')
+if not mason_lspconfig_status then
+	return
+end
 
-local servers =  {'docker_compose_language_service','lua_ls','gopls','pyright','rust-analyzer'}
-require('mason-lspconfig').setup({
-    ensure_installed=servers,
-    automatic_installation = true,
-    handlers =nil
+local servers = {
+	'docker_compose_language_service',
+	'lua_ls',
+	'gopls',
+	'pyright',
+	'rust_analyzer',
+	'volar',
+	'typescript-language-server'  -- 使用完整的名称以确保正确安装
+}
+
+mason_lspconfig.setup({
+	ensure_installed = servers,
+	automatic_installation = true,
 })
 
-for  _,server  in pairs(servers) do
-    local opts = {
-		on_attach = require("conf.mason.handler").on_attach,
-		capabilities = require("conf.mason.handler").capabilities,
-	}
-	local has_custom_opts, server_custom_opts = pcall(require, "conf.mason." .. server)
-	if has_custom_opts then
-	 	opts = vim.tbl_deep_extend("force", server_custom_opts, opts)
+print("Mason-lspconfig setup complete")
+for _, server in ipairs(servers) do
+	local server_name = server == 'typescript-language-server' and 'ts_ls' or server
+	local server_available, _ = pcall(require, "lspconfig." .. server_name)
+	if server_available then
+		print(server .. " is available")
+	else
+		print(server .. " is not available")
 	end
-	lspconfig[server].setup(opts)
 end

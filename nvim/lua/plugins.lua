@@ -12,13 +12,14 @@ if not vim.loop.fs_stat(install_path) then
     install_path,
   })
 end
+
 vim.opt.rtp:prepend(install_path)
 
 
 require('lazy').setup({
   {'wbthomason/packer.nvim'},
 --   {williamboman/nvim-lsp-installer'
- -- {'neovim/nvim-lspconfig'},
+  {'neovim/nvim-lspconfig'},
   {'williamboman/mason.nvim'},
   {'williamboman/mason-lspconfig.nvim'},
 
@@ -78,7 +79,8 @@ require('lazy').setup({
 -- git 插件
   -- {f-person/git-blame.nvim'
   -- {kdheepak/lazygit.nvim'
-  {'lewis6991/gitsigns.nvim',version = 'release'},
+  -- {'lewis6991/gitsigns.nvim',version = 'release'},
+   {'kdheepak/lazygit.nvim'},
 
 
 -- autosave

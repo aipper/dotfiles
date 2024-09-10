@@ -40,3 +40,5 @@ vim.o.shiftwidth=4
 vim.o.shiftround = true
 --命令行高度设置
 vim.o.cmdheight = 4
+vim.opt.fileformats = "unix,dos"
+
