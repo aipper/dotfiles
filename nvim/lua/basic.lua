@@ -1,7 +1,6 @@
 -- utf8
-vim.g.encoding = 'utf-8'
-vim.g.fileencoding = 'utf-8'
-
+vim.g.encoding = "utf-8"
+vim.g.fileencoding = "utf-8"
 
 -- jk移动光标上下方保留行数
 vim.o.scrolloff = 10
@@ -16,7 +15,6 @@ vim.wo.cursorline = true
 
 -- 显示左侧图标指示列
 vim.wo.signcolumn = "yes"
-
 
 vim.opt.clipboard = "unnamedplus"
 
@@ -36,9 +34,12 @@ vim.o.showtabline = 2
 vim.o.tabstop = 2
 vim.bo.tabstop = 2
 vim.o.softtabstop = 2
-vim.o.shiftwidth=4
+vim.o.shiftwidth = 4
 vim.o.shiftround = true
 --命令行高度设置
 vim.o.cmdheight = 4
 vim.opt.fileformats = "unix,dos"
+vim.opt.termguicolors = true
+vim.o.termguicolors = true
 
+vim.opt.swapfile = false
