@@ -139,7 +139,7 @@ export NVM_NODEJS_ORG_MIRROR=https://npm.taobao.org/mirrors/node
 alias sho='ssh -o ServerAliveInterval=60 '
 alias vim='nvim'
 alias tmux='TERM=screen-256color tmux -2'
-alias proxy='export all_proxy=http://127.0.0.1:1081'
+alias proxy='export all_proxy=socks5://127.0.0.1:1080'
 alias unproxy='unset all_proxy'
 
 alias  mvnd='mvn clean deploy -Dmaven.test.skip=true -Dmaven.compile.fork=true -T 1C'
@@ -191,4 +191,3 @@ export PATH="$CONDA_PATH/bin:$JAVA_HOME/bin:$PNPM_HOME:$PATH"
 export TERMINFO=/usr/share/terminfo
 # proxy
 sh  ~/sh/proxy.sh
-proxy
