@@ -4,7 +4,7 @@ if not status then
 end
 
 tokyo.setup({
-	style = "night",
+	style = "storm",
 	on_colors = function(colors)
 		colors.hint = colors.orange
 		colors.error = "#ff0000"

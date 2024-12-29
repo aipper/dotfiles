@@ -6,7 +6,6 @@ local sage_ok, lsp_sage = pcall(require, "lspsage")
 if not sage_ok then
 	return
 end
-
 lsp_sage.setup({
 	finder = {
 		max_height = 0.6,

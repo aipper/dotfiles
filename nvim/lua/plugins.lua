@@ -61,8 +61,8 @@ require("lazy").setup({
 	{ "nvim-treesitter/nvim-treesitter", build = ":TSUpdate" },
 	{ "p00f/nvim-ts-rainbow" },
 	{ "windwp/nvim-autopairs" },
-	{ "vim-airline/vim-airline" },
-	{ "vim-airline/vim-airline-themes" },
+	--	{ "vim-airline/vim-airline" },
+	--	{ "vim-airline/vim-airline-themes" },
 	{ "preservim/tagbar" },
 
 	-- 开屏页面
