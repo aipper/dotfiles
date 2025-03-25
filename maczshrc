@@ -18,7 +18,10 @@ source $ZSH/oh-my-zsh.sh
 
 # PATH configuration
 typeset -U PATH  # 去重 PATH
-export PATH="/usr/bin:/bin:/usr/sbin:/sbin:$HOME/bin:/usr/local/bin:$MVN_HOME/bin:$GRADLE_HOME/bin:$GO_HOME/bin:$LOCAL_HOME/bin:$PNPM_HOME:$ANDROID_HOME/tools:$ANDROID_HOME/platform-tools:$JAVA_HOME/bin:$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin"
+export MAVEN_HOME=/Users/ab/soft/mvn
+export PATH="/usr/bin:/bin:/usr/sbin:/sbin:$HOME/bin:/usr/local/bin:$MVN_HOME/bin:$GRADLE_HOME/bin:$GO_HOME/bin:$LOCAL_HOME/bin:$PNPM_HOME:$ANDROID_HOME/tools:$ANDROID_HOME/platform-tools:$JAVA_HOME/bin:$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$MAVEN_HOME/bin"
+
+
 
 # Go environment (异步加载)
 zsh-defer go env -w GO111MODULE=on
@@ -28,6 +31,8 @@ zsh-defer go env -w GOPROXY=https://goproxy.cn,direct
 export NVM_DIR="$HOME/.nvm"
 zsh-defer [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 zsh-defer [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+
+
 
 # Aliases
 alias sho='ssh -o ServerAliveInterval=60'
@@ -58,3 +63,4 @@ case ":$PATH:" in
   *) export PATH="$PNPM_HOME:$PATH" ;;
 esac
 # pnpm end
+
