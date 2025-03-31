@@ -1,66 +1,344 @@
-# Enable Powerlevel10k instant prompt
-if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
-  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
-fi
+# 优化版 zshrc 配置 - 自动安装依赖并显示进度条
+# 作者: Claude
+# 版本: 2.0
 
-# Load zsh-defer (embedded initialization)
-if [[ ! -f ~/.zsh-defer.plugin.zsh ]]; then
-  # Download zsh-defer if not exists
-  curl -fsSL https://raw.githubusercontent.com/romkatv/zsh-defer/master/zsh-defer.plugin.zsh -o ~/.zsh-defer.plugin.zsh
-fi
-source ~/.zsh-defer.plugin.zsh
+# 基础配置
+typeset -U PATH
+export PATH="/usr/bin:/bin:/usr/sbin:/sbin:$HOME/bin:/usr/local/bin"
 
-# Oh My Zsh configuration
-export ZSH="/Users/ab/.oh-my-zsh"
-ZSH_THEME="powerlevel10k/powerlevel10k"  # 固定主题
-plugins=(git)  # 仅加载必要插件
-source $ZSH/oh-my-zsh.sh
+# 启用 zsh 关联数组支持
+zmodload zsh/mapfile
 
-# PATH configuration
-typeset -U PATH  # 去重 PATH
-export MAVEN_HOME=/Users/ab/soft/mvn
-export PATH="/usr/bin:/bin:/usr/sbin:/sbin:$HOME/bin:/usr/local/bin:$MVN_HOME/bin:$GRADLE_HOME/bin:$GO_HOME/bin:$LOCAL_HOME/bin:$PNPM_HOME:$ANDROID_HOME/tools:$ANDROID_HOME/platform-tools:$JAVA_HOME/bin:$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$MAVEN_HOME/bin"
+# 工具函数: 显示进度条
+show_progress() {
+  local width=40
+  local percent=$1
+  local filled=$((width * percent / 100))
+  local empty=$((width - filled))
+  
+  printf "\r["
+  printf "%${filled}s" | tr ' ' '#'
+  printf "%${empty}s" | tr ' ' ' '
+  printf "] %3d%%" $percent
+}
 
+# 工具函数: 后台安装工具
+install_tool_bg() {
+  local tool_name=$1
+  local install_cmd=$2
+  local post_install=$3
+  local log_file="/tmp/zsh_${tool_name}_install.log"
+  
+  echo "开始后台安装 $tool_name..."
+  (
+    eval $install_cmd > $log_file 2>&1
+    exit_code=$?
+    if [[ $exit_code -eq 0 ]]; then
+      if [[ -n "$post_install" ]]; then
+        eval $post_install >> $log_file 2>&1
+      fi
+      echo "$tool_name 安装成功" >> $log_file
+      touch "/tmp/zsh_${tool_name}_installed"
+    else
+      echo "$tool_name 安装失败，错误代码: $exit_code" >> $log_file
+    fi
+  ) &
+  
+  echo "$tool_name 正在后台安装，可以继续使用终端..."
+  echo "安装日志: $log_file"
+}
 
+# 工具函数: 检查后台安装是否完成
+check_background_install() {
+  local tool_name=$1
+  if [[ -f "/tmp/zsh_${tool_name}_installed" ]]; then
+    rm "/tmp/zsh_${tool_name}_installed"
+    return 0
+  fi
+  return 1
+}
 
-# Go environment (异步加载)
-zsh-defer go env -w GO111MODULE=on
-zsh-defer go env -w GOPROXY=https://goproxy.cn,direct
+# 工具函数: 检查并安装工具
+ensure_installed() {
+  local tool_name=$1
+  local check_cmd=$2
+  local install_cmd=$3
+  local post_install=$4
+  local auto_install=${5:-true}
+  
+  if ! command -v $check_cmd &> /dev/null; then
+    if [[ "$auto_install" == true ]]; then
+      install_tool_bg "$tool_name" "$install_cmd" "$post_install"
+      return 2  # 表示开始后台安装
+    else
+      echo "未检测到 $tool_name，请安装后再使用相关功能"
+      return 1  # 未安装且不自动安装
+    fi
+  fi
+  return 0  # 已安装
+}
 
-# NVM configuration (异步加载)
-export NVM_DIR="$HOME/.nvm"
-zsh-defer [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-zsh-defer [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+# 初始化已安装工具列表 - 使用关联数组
+typeset -A tools_to_install
+tools_to_install=(
+  ["fnm"]="确保 Node.js 管理工具可用"
+  ["pure"]="轻量级 Zsh 主题"
+  ["zsh-defer"]="Zsh 异步加载插件"
+)
 
+# 检查必要工具
+check_required_tools() {
+  # 检查 Homebrew
+  if ! command -v brew &> /dev/null; then
+    echo "未检测到 Homebrew，这是一个必要的依赖，将开始安装..."
+    install_tool_bg "homebrew" '/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"' ""
+    return
+  fi
+  
+  # 检查 fnm
+  ensure_installed "fnm" "fnm" "brew install fnm" "setup_fnm" true
+  
+  # 检查 Pure 主题
+  if [[ ! -d "$HOME/.zsh/pure" ]]; then
+    install_tool_bg "pure" "mkdir -p $HOME/.zsh/pure && git clone https://github.com/sindresorhus/pure.git $HOME/.zsh/pure" ""
+  fi
+  
+  # 检查 zsh-defer
+  if [[ ! -f ~/.zsh-defer.plugin.zsh ]]; then
+    install_tool_bg "zsh-defer" "curl -fsSL https://raw.githubusercontent.com/romkatv/zsh-defer/master/zsh-defer.plugin.zsh -o ~/.zsh-defer.plugin.zsh" ""
+  else
+    source ~/.zsh-defer.plugin.zsh
+  fi
+}
 
+# fnm 配置
+setup_fnm() {
+  # 如果之前有 nvm，自动导入已有的 node 版本
+  if [[ -d "$HOME/.nvm" ]]; then
+    echo "检测到 nvm，正在导入现有 Node.js 版本..."
+    for version in $(ls -1 $HOME/.nvm/versions/node 2>/dev/null); do
+      fnm import --node-dir "$HOME/.nvm/versions/node/$version" &>/dev/null
+    done
+  fi
+  
+  # 初始化 fnm 环境
+  eval "$(fnm env --use-on-cd 2>/dev/null)"
+}
 
-# Aliases
-alias sho='ssh -o ServerAliveInterval=60'
+# fnm 按需加载
+function load_fnm() {
+  local status=$(ensure_installed "fnm" "fnm" "brew install fnm" "setup_fnm")
+  
+  if [[ $status -eq 0 ]]; then
+    # 已安装，直接加载
+    eval "$(fnm env --use-on-cd)"
+    return 0
+  elif [[ $status -eq 2 ]]; then
+    # 后台安装中，检查是否完成
+    if check_background_install "fnm"; then
+      eval "$(fnm env --use-on-cd)"
+      return 0
+    else
+      echo "fnm 尚未安装完成，请稍后再试"
+      return 1
+    fi
+  else
+    # 安装失败
+    return 1
+  fi
+}
+
+# JDK 按需加载
+function load_jdk() {
+  unset JAVA_HOME
+  export JAVA_7_HOME=$(/usr/libexec/java_home -v 1.7 2>/dev/null)
+  export JAVA_8_HOME=$(/usr/libexec/java_home -v 1.8 2>/dev/null)
+  export JAVA_11_HOME=$(/usr/libexec/java_home -v 11 2>/dev/null)
+  export JAVA_22_HOME=$(/usr/libexec/java_home -v 22 2>/dev/null)
+  
+  # 创建切换别名
+  alias jdk7='[[ -n "$JAVA_7_HOME" ]] && export JAVA_HOME=$JAVA_7_HOME && echo "已切换到 JDK 7" || echo "JDK 7 未安装"'
+  alias jdk8='[[ -n "$JAVA_8_HOME" ]] && export JAVA_HOME=$JAVA_8_HOME && echo "已切换到 JDK 8" || echo "JDK 8 未安装"'
+  alias jdk11='[[ -n "$JAVA_11_HOME" ]] && export JAVA_HOME=$JAVA_11_HOME && echo "已切换到 JDK 11" || echo "JDK 11 未安装"'
+  alias jdk22='[[ -n "$JAVA_22_HOME" ]] && export JAVA_HOME=$JAVA_22_HOME && echo "已切换到 JDK 22" || echo "JDK 22 未安装"'
+  
+  # 设置默认 JDK（优先使用 JDK8，若不存在则依次尝试其他）
+  if [[ -n "$JAVA_8_HOME" ]]; then
+    jdk8
+  elif [[ -n "$JAVA_11_HOME" ]]; then
+    jdk11
+  elif [[ -n "$JAVA_22_HOME" ]]; then
+    jdk22
+  elif [[ -n "$JAVA_7_HOME" ]]; then
+    jdk7
+  else
+    echo "未检测到可用的 JDK，请安装 JDK"
+  fi
+}
+
+# Maven 按需加载
+function load_maven() {
+  if [[ -z "$MAVEN_HOME" ]]; then
+    if [[ -d "/Users/ab/soft/mvn" ]]; then
+      export MAVEN_HOME="/Users/ab/soft/mvn"
+    elif command -v mvn &> /dev/null; then
+      export MAVEN_HOME=$(dirname $(dirname $(which mvn)))
+    else
+      local status=$(ensure_installed "Maven" "mvn" "brew install maven" "")
+      if [[ $status -eq 0 ]] || (check_background_install "Maven"); then
+        export MAVEN_HOME=$(dirname $(dirname $(which mvn)))
+      else
+        return 1
+      fi
+    fi
+    
+    export PATH="$PATH:$MAVEN_HOME/bin"
+  fi
+  
+  # 添加常用 Maven 别名
+  alias mvnd='mvn clean deploy -Dmaven.test.skip=true -Dmaven.compile.fork=true -T 1C'
+  alias mvnp='mvn clean package -Dmaven.test.skip=true -Dmaven.compile.fork=true -T 1C'
+  alias mvnc='mvn dependency:purge-local-repository'
+}
+
+# Go 环境按需加载
+function load_go() {
+  local status=$(ensure_installed "Go" "go" "brew install go" "")
+  
+  if [[ $status -eq 0 ]] || (check_background_install "Go"); then
+    export GO_HOME=$(dirname $(dirname $(which go)))
+    export PATH="$PATH:$GO_HOME/bin"
+    export GOPATH="$HOME/go"
+    export PATH="$PATH:$GOPATH/bin"
+    
+    # 设置 Go 环境
+    go env -w GO111MODULE=on
+    go env -w GOPROXY=https://goproxy.cn,direct
+    return 0
+  else
+    return 1
+  fi
+}
+
+# pnpm 按需加载
+function load_pnpm() {
+  if ! command -v pnpm &> /dev/null; then
+    if command -v npm &> /dev/null; then
+      local status=$(ensure_installed "pnpm" "pnpm" "npm install -g pnpm" "")
+      if [[ $status -ne 0 ]] && !(check_background_install "pnpm"); then
+        return 1
+      fi
+    else
+      echo "需要先安装 npm，尝试加载 Node.js 环境..."
+      load_fnm
+      if ! command -v npm &> /dev/null; then
+        echo "npm 未安装，无法继续"
+        return 1
+      fi
+      npm install -g pnpm
+    fi
+  fi
+  
+  export PNPM_HOME="/Users/ab/Library/pnpm"
+  export PATH="$PNPM_HOME:$PATH"
+}
+
+# 常用别名
 alias vim='nvim'
 alias tmux='TERM=screen-256color tmux -2'
 alias proxy='export all_proxy=socks5://127.0.0.1:1080'
 alias unproxy='unset all_proxy'
-alias mvnd='mvn clean deploy -Dmaven.test.skip=true -Dmaven.compile.fork=true -T 1C'
-alias mvnp='mvn clean package -Dmaven.test.skip=true -Dmaven.compile.fork=true -T 1C'
-alias mvnc='mvn dependency:purge-local-repository'
+alias sho='ssh -o ServerAliveInterval=60'
 
-# JDK configuration
-unset JAVA_HOME
-export JAVA_7_HOME=$(/usr/libexec/java_home -v 1.7)
-export JAVA_8_HOME=$(/usr/libexec/java_home -v 1.8)
-export JAVA_22_HOME=$(/usr/libexec/java_home -v 22)
-alias jdk7='export JAVA_HOME=$JAVA_7_HOME'
-alias jdk8='export JAVA_HOME=$JAVA_8_HOME'
-alias jdk22='export JAVA_HOME=$JAVA_22_HOME'
+# 轻量级主题配置
+function setup_pure_theme() {
+  if [[ ! -d "$HOME/.zsh/pure" ]]; then
+    if check_background_install "pure"; then
+      fpath+=("$HOME/.zsh/pure")
+      autoload -U promptinit; promptinit
+      prompt pure
+    else
+      # 使用临时简单主题
+      PS1='%F{cyan}%~%f %F{green}❯%f '
+    fi
+  else
+    fpath+=("$HOME/.zsh/pure")
+    autoload -U promptinit; promptinit
+    prompt pure
+  fi
+}
 
-# Powerlevel10k configuration
-[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+# 命令包装函数
+function wrap_command() {
+  local cmd=$1
+  local load_func=$2
+  
+  eval "function $cmd() {
+    $load_func
+    command $cmd \"\$@\"
+  }"
+}
 
-# pnpm
-export PNPM_HOME="/Users/ab/Library/pnpm"
-case ":$PATH:" in
-  *":$PNPM_HOME:"*) ;;
-  *) export PATH="$PNPM_HOME:$PATH" ;;
-esac
-# pnpm end
+# 创建命令别名来触发环境加载
+wrap_command "node" "load_fnm"
+wrap_command "npm" "load_fnm"
+wrap_command "npx" "load_fnm"
+wrap_command "fnm" "load_fnm"
+wrap_command "java" "load_jdk"
+wrap_command "javac" "load_jdk"
+wrap_command "mvn" "load_maven"
+wrap_command "go" "load_go"
+wrap_command "pnpm" "load_pnpm"
 
+# 初始化配置
+function init_config() {
+  echo "初始化 zsh 配置..."
+  
+  # 检查并启动必要工具的安装
+  check_required_tools
+  
+  # 设置临时提示符
+  PS1='%F{cyan}%~%f %F{green}❯%f '
+  
+  # 异步加载主题
+  (
+    sleep 1  # 给安装一点时间
+    setup_pure_theme
+  ) &
+  
+  # 监控后台安装进度
+  (
+    # 获取关联数组大小
+    total=${(k)#tools_to_install}
+    installed=0
+    
+    while [[ $installed -lt $total ]]; do
+      installed=0
+      # 正确遍历关联数组
+      for tool in ${(k)tools_to_install}; do
+        if command -v $tool &>/dev/null || [[ -f "/tmp/zsh_${tool}_installed" ]] || [[ "$tool" == "pure" && -d "$HOME/.zsh/pure" ]]; then
+          ((installed++))
+        fi
+      done
+      
+      percent=$((installed * 100 / total))
+      show_progress $percent
+      sleep 0.5
+      
+      if [[ $installed -eq $total ]]; then
+        printf "\r%-60s\r" ""  # 清除进度条
+        echo "所有工具安装完成！"
+        # 重新加载 zsh-defer 如果已安装
+        if [[ -f ~/.zsh-defer.plugin.zsh ]]; then
+          source ~/.zsh-defer.plugin.zsh
+        fi
+        # 应用主题
+        setup_pure_theme
+        break
+      fi
+    done
+  ) &
+}
+
+# 启动初始化
+init_config
