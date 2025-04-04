@@ -1,25 +1,137 @@
+#!/usr/bin/env zsh
 # 优化版 zshrc 配置 - 自动安装依赖并显示进度条
 # 作者: Claude
-# 版本: 2.0
+# 版本: 2.2
 
 # 基础配置
 typeset -U PATH
-export PATH="/usr/bin:/bin:/usr/sbin:/sbin:$HOME/bin:/usr/local/bin"
+# 添加常用路径，包括 Homebrew 可能的位置
+export PATH="/usr/bin:/bin:/usr/sbin:/sbin:$HOME/bin:/usr/local/bin:/opt/homebrew/bin:/usr/local/bin"
 
-# 启用 zsh 关联数组支持
+# 启用 zsh 模块
 zmodload zsh/mapfile
+zmodload zsh/datetime
 
-# 工具函数: 显示进度条
+# 缓存目录 - 用于存储安装状态和配置
+ZSH_CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/zsh"
+[[ ! -d "$ZSH_CACHE_DIR" ]] && mkdir -p "$ZSH_CACHE_DIR"
+
+# 颜色定义
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+PURPLE='\033[0;35m'
+CYAN='\033[0;36m'
+GRAY='\033[0;90m'
+NC='\033[0m' # No Color
+
+# 工具函数: 显示彩色进度条
 show_progress() {
   local width=40
   local percent=$1
   local filled=$((width * percent / 100))
   local empty=$((width - filled))
+  local message=${2:-""}
   
-  printf "\r["
-  printf "%${filled}s" | tr ' ' '#'
-  printf "%${empty}s" | tr ' ' ' '
-  printf "] %3d%%" $percent
+  # 使用 ANSI 颜色代码使进度条更美观
+  printf "\r${BLUE}[${NC}"
+  printf "${GREEN}%${filled}s${NC}" | tr ' ' '#'
+  printf "${GRAY}%${empty}s${NC}" | tr ' ' '·'
+  printf "${BLUE}]${NC} ${YELLOW}%3d%%${NC} %s" $percent "$message"
+}
+
+# 工具函数: 显示安装进度
+show_install_progress() {
+  local tool_name=$1
+  local log_file="$ZSH_CACHE_DIR/${tool_name}_install.log"
+  local temp_file="$ZSH_CACHE_DIR/${tool_name}_temp.log"
+  local status_file="$ZSH_CACHE_DIR/${tool_name}_status"
+  local start_time=$(date +%s)
+  local spinner=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
+  local i=0
+  
+  # 创建临时文件用于跟踪进度
+  touch "$temp_file"
+  
+  echo -e "\n${YELLOW}开始安装 $tool_name...${NC}"
+  
+  while [[ ! -f "$status_file" || "$(cat "$status_file")" == "installing" ]]; do
+    # 显示最新的日志内容
+    if [[ -f "$log_file" ]]; then
+      local new_content=$(tail -n 5 "$log_file" 2>/dev/null | grep -v "^$" | tail -n 1)
+      if [[ -n "$new_content" && "$new_content" != "$(tail -n 1 "$temp_file" 2>/dev/null)" ]]; then
+        echo "$new_content" >> "$temp_file"
+        echo -e "${GRAY}$new_content${NC}"
+      fi
+    fi
+    
+    # 显示旋转动画
+    local current_time=$(date +%s)
+    local elapsed=$((current_time - start_time))
+    printf "\r${BLUE}${spinner[$i]}${NC} ${YELLOW}安装中...${NC} ${GRAY}已用时间: ${elapsed}s${NC}  "
+    i=$(( (i+1) % ${#spinner[@]} ))
+    sleep 0.1
+    
+    # 检查是否已完成
+    if [[ -f "$status_file" && "$(cat "$status_file")" != "installing" ]]; then
+      break
+    fi
+    
+    # 检查是否超时（5分钟）
+    if [[ $elapsed -gt 300 ]]; then
+      echo -e "\n${RED}安装超时，可能需要手动输入密码或处理其他问题${NC}"
+      echo -e "${YELLOW}请检查终端是否有需要输入的提示${NC}"
+      break
+    fi
+  done
+  
+  # 清理临时文件
+  rm -f "$temp_file"
+  
+  # 显示最终状态
+  if [[ -f "$status_file" ]]; then
+    local final_status=$(cat "$status_file")
+    if [[ "$final_status" == "installed" ]]; then
+      echo -e "\n${GREEN}✓ $tool_name 安装成功${NC}"
+      return 0
+    elif [[ "$final_status" == "failed" ]]; then
+      echo -e "\n${RED}✗ $tool_name 安装失败${NC}"
+      echo -e "${YELLOW}查看详细日志: $log_file${NC}"
+      return 1
+    fi
+  fi
+  
+  echo -e "\n${YELLOW}? $tool_name 安装状态未知${NC}"
+  return 2
+}
+
+# 工具函数: 询问用户是否安装
+ask_install() {
+  local tool_name=$1
+  local description=$2
+  
+  echo -e "${YELLOW}未检测到 $tool_name${NC} - $description"
+  echo -ne "${CYAN}是否安装? (y/n) ${NC}"
+  read -r response
+  
+  if [[ "$response" =~ ^[Yy]$ ]]; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+# 工具函数: 检查工具安装状态
+check_tool_status() {
+  local tool_name=$1
+  local status_file="$ZSH_CACHE_DIR/${tool_name}_status"
+  
+  if [[ -f "$status_file" ]]; then
+    cat "$status_file"
+  else
+    echo "unknown"
+  fi
 }
 
 # 工具函数: 后台安装工具
@@ -27,317 +139,389 @@ install_tool_bg() {
   local tool_name=$1
   local install_cmd=$2
   local post_install=$3
-  local log_file="/tmp/zsh_${tool_name}_install.log"
+  local log_file="$ZSH_CACHE_DIR/${tool_name}_install.log"
+  local status_file="$ZSH_CACHE_DIR/${tool_name}_status"
   
-  echo "开始后台安装 $tool_name..."
-  (
-    eval $install_cmd > $log_file 2>&1
+  # 如果已经在安装中，不要重复启动
+  if [[ -f "$status_file" && "$(cat "$status_file")" == "installing" ]]; then
+    echo -e "${YELLOW}⚠️ $tool_name 已在安装中，请等待完成${NC}"
+    return
+  fi
+  
+  echo "installing" > "$status_file"
+  
+  # 记录开始时间
+  echo "安装开始: $(date)" > "$log_file"
+  
+  # 在后台执行安装命令
+  {
+    # 执行安装命令
+    eval "$install_cmd" >> "$log_file" 2>&1
     exit_code=$?
+    
     if [[ $exit_code -eq 0 ]]; then
       if [[ -n "$post_install" ]]; then
-        eval $post_install >> $log_file 2>&1
+        echo "执行安装后配置..." >> "$log_file"
+        eval "$post_install" >> "$log_file" 2>&1
+        post_exit_code=$?
+        
+        if [[ $post_exit_code -ne 0 ]]; then
+          echo "⚠️ $tool_name 安装后配置失败" >> "$log_file"
+          echo "failed" > "$status_file"
+          return
+        fi
       fi
-      echo "$tool_name 安装成功" >> $log_file
-      touch "/tmp/zsh_${tool_name}_installed"
+      
+      echo "✅ $tool_name 安装成功" >> "$log_file"
+      echo "installed" > "$status_file"
     else
-      echo "$tool_name 安装失败，错误代码: $exit_code" >> $log_file
+      echo "❌ $tool_name 安装失败，错误代码: $exit_code" >> "$log_file"
+      echo "failed" > "$status_file"
     fi
-  ) &
+    
+    echo "安装结束: $(date)" >> "$log_file"
+  } &
   
-  echo "$tool_name 正在后台安装，可以继续使用终端..."
-  echo "安装日志: $log_file"
-}
-
-# 工具函数: 检查后台安装是否完成
-check_background_install() {
-  local tool_name=$1
-  if [[ -f "/tmp/zsh_${tool_name}_installed" ]]; then
-    rm "/tmp/zsh_${tool_name}_installed"
+  # 显示安装进度
+  show_install_progress "$tool_name"
+  
+  # 返回安装状态
+  if [[ -f "$status_file" && "$(cat "$status_file")" == "installed" ]]; then
     return 0
+  else
+    return 1
   fi
-  return 1
 }
 
-# 工具函数: 检查并安装工具
+# 工具函数: 检查并安装工具 - 交互式
 ensure_installed() {
   local tool_name=$1
   local check_cmd=$2
   local install_cmd=$3
   local post_install=$4
-  local auto_install=${5:-true}
+  local description=$5
+  local auto_install=${6:-false}
   
-  if ! command -v $check_cmd &> /dev/null; then
-    if [[ "$auto_install" == true ]]; then
-      install_tool_bg "$tool_name" "$install_cmd" "$post_install"
-      return 2  # 表示开始后台安装
-    else
-      echo "未检测到 $tool_name，请安装后再使用相关功能"
-      return 1  # 未安装且不自动安装
+  # 首先检查命令是否可用
+  if command -v $check_cmd &> /dev/null; then
+    echo "installed" > "$ZSH_CACHE_DIR/${tool_name}_status"
+    echo -e "${GREEN}✓ $tool_name 已安装${NC}"
+    return 0  # 已安装
+  fi
+  
+  # 检查安装状态
+  local install_status=$(check_tool_status "$tool_name")
+  
+  case "$install_status" in
+    "installed")
+      # 状态文件说已安装，但命令不可用，可能是状态文件过时
+      if ! command -v $check_cmd &> /dev/null; then
+        echo "unknown" > "$ZSH_CACHE_DIR/${tool_name}_status"
+        echo -e "${YELLOW}⚠️ $tool_name 状态文件过时${NC}"
+      else
+        echo -e "${GREEN}✓ $tool_name 已安装${NC}"
+        return 0
+      fi
+      ;;
+    "installing")
+      # 正在安装中
+      echo -e "${BLUE}🔄 $tool_name 正在安装中...${NC}"
+      show_install_progress "$tool_name"
+      if command -v $check_cmd &> /dev/null; then
+        echo "installed" > "$ZSH_CACHE_DIR/${tool_name}_status"
+        echo -e "${GREEN}✓ $tool_name 已安装${NC}"
+        return 0
+      else
+        return 2
+      fi
+      ;;
+    "failed")
+      # 之前安装失败
+      echo -e "${RED}✗ $tool_name 之前安装失败${NC}"
+      ;;
+  esac
+  
+  # 询问用户是否安装
+  if [[ "$auto_install" == true ]] || ask_install "$tool_name" "$description"; then
+    echo -e "${BLUE}🔄 开始安装 $tool_name...${NC}"
+    
+    # 检查是否需要 sudo
+    if [[ "$install_cmd" == *"sudo"* ]]; then
+      echo -e "${YELLOW}⚠️ 此安装可能需要输入密码${NC}"
     fi
-  fi
-  return 0  # 已安装
-}
-
-# 初始化已安装工具列表 - 使用关联数组
-typeset -A tools_to_install
-tools_to_install=(
-  ["fnm"]="确保 Node.js 管理工具可用"
-  ["pure"]="轻量级 Zsh 主题"
-  ["zsh-defer"]="Zsh 异步加载插件"
-)
-
-# 检查必要工具
-check_required_tools() {
-  # 检查 Homebrew
-  if ! command -v brew &> /dev/null; then
-    echo "未检测到 Homebrew，这是一个必要的依赖，将开始安装..."
-    install_tool_bg "homebrew" '/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"' ""
-    return
-  fi
-  
-  # 检查 fnm
-  ensure_installed "fnm" "fnm" "brew install fnm" "setup_fnm" true
-  
-  # 检查 Pure 主题
-  if [[ ! -d "$HOME/.zsh/pure" ]]; then
-    install_tool_bg "pure" "mkdir -p $HOME/.zsh/pure && git clone https://github.com/sindresorhus/pure.git $HOME/.zsh/pure" ""
-  fi
-  
-  # 检查 zsh-defer
-  if [[ ! -f ~/.zsh-defer.plugin.zsh ]]; then
-    install_tool_bg "zsh-defer" "curl -fsSL https://raw.githubusercontent.com/romkatv/zsh-defer/master/zsh-defer.plugin.zsh -o ~/.zsh-defer.plugin.zsh" ""
-  else
-    source ~/.zsh-defer.plugin.zsh
-  fi
-}
-
-# fnm 配置
-setup_fnm() {
-  # 如果之前有 nvm，自动导入已有的 node 版本
-  if [[ -d "$HOME/.nvm" ]]; then
-    echo "检测到 nvm，正在导入现有 Node.js 版本..."
-    for version in $(ls -1 $HOME/.nvm/versions/node 2>/dev/null); do
-      fnm import --node-dir "$HOME/.nvm/versions/node/$version" &>/dev/null
-    done
-  fi
-  
-  # 初始化 fnm 环境
-  eval "$(fnm env --use-on-cd 2>/dev/null)"
-}
-
-# fnm 按需加载
-function load_fnm() {
-  local status=$(ensure_installed "fnm" "fnm" "brew install fnm" "setup_fnm")
-  
-  if [[ $status -eq 0 ]]; then
-    # 已安装，直接加载
-    eval "$(fnm env --use-on-cd)"
-    return 0
-  elif [[ $status -eq 2 ]]; then
-    # 后台安装中，检查是否完成
-    if check_background_install "fnm"; then
-      eval "$(fnm env --use-on-cd)"
+    
+    install_tool_bg "$tool_name" "$install_cmd" "$post_install"
+    
+    # 检查安装结果
+    if command -v $check_cmd &> /dev/null; then
+      echo "installed" > "$ZSH_CACHE_DIR/${tool_name}_status"
+      echo -e "${GREEN}✓ $tool_name 安装成功${NC}"
       return 0
     else
-      echo "fnm 尚未安装完成，请稍后再试"
+      echo -e "${RED}✗ $tool_name 安装失败${NC}"
       return 1
     fi
   else
-    # 安装失败
+    echo -e "${YELLOW}⚠️ 跳过安装 $tool_name${NC}"
     return 1
   fi
 }
 
-# JDK 按需加载
-function load_jdk() {
-  unset JAVA_HOME
-  export JAVA_7_HOME=$(/usr/libexec/java_home -v 1.7 2>/dev/null)
-  export JAVA_8_HOME=$(/usr/libexec/java_home -v 1.8 2>/dev/null)
-  export JAVA_11_HOME=$(/usr/libexec/java_home -v 11 2>/dev/null)
-  export JAVA_22_HOME=$(/usr/libexec/java_home -v 22 2>/dev/null)
-  
-  # 创建切换别名
-  alias jdk7='[[ -n "$JAVA_7_HOME" ]] && export JAVA_HOME=$JAVA_7_HOME && echo "已切换到 JDK 7" || echo "JDK 7 未安装"'
-  alias jdk8='[[ -n "$JAVA_8_HOME" ]] && export JAVA_HOME=$JAVA_8_HOME && echo "已切换到 JDK 8" || echo "JDK 8 未安装"'
-  alias jdk11='[[ -n "$JAVA_11_HOME" ]] && export JAVA_HOME=$JAVA_11_HOME && echo "已切换到 JDK 11" || echo "JDK 11 未安装"'
-  alias jdk22='[[ -n "$JAVA_22_HOME" ]] && export JAVA_HOME=$JAVA_22_HOME && echo "已切换到 JDK 22" || echo "JDK 22 未安装"'
-  
-  # 设置默认 JDK（优先使用 JDK8，若不存在则依次尝试其他）
-  if [[ -n "$JAVA_8_HOME" ]]; then
-    jdk8
-  elif [[ -n "$JAVA_11_HOME" ]]; then
-    jdk11
-  elif [[ -n "$JAVA_22_HOME" ]]; then
-    jdk22
-  elif [[ -n "$JAVA_7_HOME" ]]; then
-    jdk7
-  else
-    echo "未检测到可用的 JDK，请安装 JDK"
-  fi
-}
+# 初始化工具列表 - 使用关联数组
+typeset -A tools_to_install
+tools_to_install=(
+  ["homebrew"]="macOS 包管理器，用于安装其他工具"
+  ["fnm"]="Node.js 版本管理器，用于管理不同版本的 Node.js"
+  ["pure"]="轻量级 Zsh 主题，提供美观的命令行界面"
+  ["zsh-defer"]="Zsh 异步加载插件，提高 shell 启动速度"
+)
 
-# Maven 按需加载
-function load_maven() {
-  if [[ -z "$MAVEN_HOME" ]]; then
-    if [[ -d "/Users/ab/soft/mvn" ]]; then
-      export MAVEN_HOME="/Users/ab/soft/mvn"
-    elif command -v mvn &> /dev/null; then
-      export MAVEN_HOME=$(dirname $(dirname $(which mvn)))
-    else
-      local status=$(ensure_installed "Maven" "mvn" "brew install maven" "")
-      if [[ $status -eq 0 ]] || (check_background_install "Maven"); then
-        export MAVEN_HOME=$(dirname $(dirname $(which mvn)))
-      else
-        return 1
+# 检查必要工具 - 交互式
+check_required_tools() {
+  echo -e "${BLUE}=== 检查必要工具 ===${NC}"
+  
+  # 检查 Homebrew - 检查命令和安装目录
+  if command -v brew &> /dev/null || [[ -d "/opt/homebrew" ]] || [[ -d "/usr/local/Homebrew" ]]; then
+    # Homebrew 已安装，确保状态文件正确
+    echo "installed" > "$ZSH_CACHE_DIR/homebrew_status"
+    echo -e "${GREEN}✓ Homebrew 已安装${NC}"
+  else
+    local brew_status=$(check_tool_status "homebrew")
+    if [[ "$brew_status" == "installing" ]]; then
+      echo -e "${BLUE}🔄 Homebrew 正在安装中...${NC}"
+      show_install_progress "homebrew"
+    elif [[ "$brew_status" != "installed" ]]; then
+      if ask_install "Homebrew" "macOS 包管理器，用于安装其他工具"; then
+        echo -e "${YELLOW}⚠️ Homebrew 安装可能需要输入密码${NC}"
+        install_tool_bg "homebrew" '/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"' 'if [[ -f /opt/homebrew/bin/brew ]]; then eval "$(/opt/homebrew/bin/brew shellenv)"; elif [[ -f /usr/local/bin/brew ]]; then eval "$(/usr/local/bin/brew shellenv)"; fi'
       fi
     fi
-    
-    export PATH="$PATH:$MAVEN_HOME/bin"
   fi
   
-  # 添加常用 Maven 别名
-  alias mvnd='mvn clean deploy -Dmaven.test.skip=true -Dmaven.compile.fork=true -T 1C'
-  alias mvnp='mvn clean package -Dmaven.test.skip=true -Dmaven.compile.fork=true -T 1C'
-  alias mvnc='mvn dependency:purge-local-repository'
+  # 确保 Homebrew 环境变量设置正确
+  if [[ -f /opt/homebrew/bin/brew ]]; then
+    eval "$(/opt/homebrew/bin/brew shellenv)"
+    echo -e "${GREEN}✓ 使用 Apple Silicon Homebrew (/opt/homebrew)${NC}"
+  elif [[ -f /usr/local/bin/brew ]]; then
+    eval "$(/usr/local/bin/brew shellenv)"
+    echo -e "${GREEN}✓ 使用 Intel Homebrew (/usr/local)${NC}"
+  fi
+  
+  # 检查 fnm - 更全面的检测
+  if command -v fnm &>/dev/null || [[ -x "/opt/homebrew/bin/fnm" ]] || [[ -x "/usr/local/bin/fnm" ]] || [[ -x "$HOME/.fnm/fnm" ]]; then
+    echo "installed" > "$ZSH_CACHE_DIR/fnm_status"
+    echo -e "${GREEN}✓ fnm 已安装${NC}"
+    # 确保 fnm 环境变量设置正确
+    setup_fnm
+  else
+    ensure_installed "fnm" "fnm" "brew install fnm" "setup_fnm" "Node.js 版本管理器，用于管理不同版本的 Node.js"
+  fi
+  
+  # 检查 Pure 主题
+  if [[ ! -d "$HOME/.zsh/pure" ]]; then
+    ensure_installed "pure" "test -d $HOME/.zsh/pure" "mkdir -p $HOME/.zsh/pure && git clone https://github.com/sindresorhus/pure.git $HOME/.zsh/pure" "" "轻量级 Zsh 主题，提供美观的命令行界面"
+  else
+    echo "installed" > "$ZSH_CACHE_DIR/pure_status"
+    echo -e "${GREEN}✓ Pure 主题已安装${NC}"
+  fi
+  
+  # 检查 zsh-defer
+  if [[ ! -f "$HOME/.zsh/zsh-defer/zsh-defer.plugin.zsh" ]]; then
+    ensure_installed "zsh-defer" "test -f $HOME/.zsh/zsh-defer/zsh-defer.plugin.zsh" "mkdir -p $HOME/.zsh/zsh-defer && curl -fsSL https://raw.githubusercontent.com/romkatv/zsh-defer/master/zsh-defer.plugin.zsh -o $HOME/.zsh/zsh-defer/zsh-defer.plugin.zsh" "" "Zsh 异步加载插件，提高 shell 启动速度"
+  else
+    echo "installed" > "$ZSH_CACHE_DIR/zsh-defer_status"
+    echo -e "${GREEN}✓ zsh-defer 已安装${NC}"
+    source "$HOME/.zsh/zsh-defer/zsh-defer.plugin.zsh"
+  fi
+  
+  echo -e "${BLUE}=== 检查完成 ===${NC}\n"
 }
 
-# Go 环境按需加载
-function load_go() {
-  local status=$(ensure_installed "Go" "go" "brew install go" "")
+# fnm 设置函数 - 用于安装后配置
+setup_fnm() {
+  # 添加 fnm 到 PATH - 确保使用正确的路径
+  local fnm_paths=(
+    "$HOME/.fnm"
+    "/opt/homebrew/bin"
+    "/usr/local/bin"
+  )
   
-  if [[ $status -eq 0 ]] || (check_background_install "Go"); then
-    export GO_HOME=$(dirname $(dirname $(which go)))
-    export PATH="$PATH:$GO_HOME/bin"
-    export GOPATH="$HOME/go"
-    export PATH="$PATH:$GOPATH/bin"
+  for fnm_path in "${fnm_paths[@]}"; do
+    if [[ -d "$fnm_path" && -x "$fnm_path/fnm" ]]; then
+      export PATH="$fnm_path:$PATH"
+      break
+    fi
+  done
+  
+  # 如果之前有 nvm，自动导入已有的 node 版本
+  if [[ -d "$HOME/.nvm" ]]; then
+    echo -e "${BLUE}检测到 nvm，正在导入现有 Node.js 版本...${NC}"
+    for version in $(ls -1 $HOME/.nvm/versions/node 2>/dev/null); do
+      command fnm import --node-dir "$HOME/.nvm/versions/node/$version" &>/dev/null
+    done
+  fi
+  
+  # 设置 fnm 环境变量 - 使用 command 前缀避免递归
+  if command -v fnm &>/dev/null; then
+    eval "$(command fnm env --use-on-cd)" 2>/dev/null || true
+  fi
+  
+  echo -e "${GREEN}✓ fnm 环境已配置${NC}"
+  return 0
+}
+
+# fnm 加载函数 - 用于按需加载
+load_fnm() {
+  # 静默模式标志 - 避免重复输出
+  local silent=${1:-false}
+  
+  # 如果 fnm 已经在 PATH 中，直接返回
+  if command -v fnm &>/dev/null; then
+    # 确保 fnm 环境变量已设置
+    eval "$(command fnm env --use-on-cd)" 2>/dev/null || true
+    [[ "$silent" == "false" ]] && echo -e "${GREEN}✓ fnm 环境已加载${NC}"
+    return 0
+  fi
+  
+  # 检查 fnm 安装位置并添加到 PATH
+  local fnm_paths=(
+    "$HOME/.fnm"
+    "/opt/homebrew/bin"
+    "/usr/local/bin"
+  )
+  
+  local fnm_found=false
+  for fnm_path in "${fnm_paths[@]}"; do
+    if [[ -x "$fnm_path/fnm" ]]; then
+      export PATH="$fnm_path:$PATH"
+      fnm_found=true
+      break
+    fi
+  done
+  
+  if [[ "$fnm_found" == true ]]; then
+    # 设置 fnm 环境变量 - 使用 command 前缀避免递归
+    eval "$(command fnm env --use-on-cd)" 2>/dev/null || true
+    [[ "$silent" == "false" ]] && echo -e "${GREEN}✓ fnm 环境已加载${NC}"
+    return 0
+  fi
+  
+  # 如果 fnm 未安装且不是静默模式，尝试安装
+  if [[ "$silent" == "false" ]]; then
+    echo -e "${YELLOW}⚠️ fnm 未安装，正在尝试安装...${NC}"
+    ensure_installed "fnm" "fnm" "brew install fnm" "setup_fnm" "Node.js 版本管理器" true
     
-    # 设置 Go 环境
-    go env -w GO111MODULE=on
-    go env -w GOPROXY=https://goproxy.cn,direct
+    # 再次检查 fnm 是否可用
+    if command -v fnm &>/dev/null; then
+      eval "$(command fnm env --use-on-cd)" 2>/dev/null || true
+      echo -e "${GREEN}✓ fnm 已安装并加载${NC}"
+      return 0
+    else
+      echo -e "${RED}✗ 无法加载 fnm${NC}"
+      return 1
+    fi
+  fi
+  
+  return 1
+}
+
+# Node.js 安装函数
+install_node() {
+  local version=${1:-"lts"}
+  
+  # 确保 fnm 已加载 - 使用静默模式
+  load_fnm true || return 1
+  
+  echo -e "${BLUE}🔄 正在安装 Node.js $version...${NC}"
+  
+  # 安装指定版本 - 使用 command 前缀避免递归
+  if [[ "$version" == "lts" ]]; then
+    command fnm install --lts
+    command fnm default $(command fnm list | grep lts | head -n1 | awk '{print $2}')
+  else
+    command fnm install $version
+    command fnm default $version
+  fi
+  
+  # 检查安装结果
+  if command -v node &>/dev/null; then
+    echo -e "${GREEN}✓ Node.js $(node -v) 安装成功${NC}"
     return 0
   else
+    echo -e "${RED}✗ Node.js 安装失败${NC}"
     return 1
   fi
 }
 
-# pnpm 按需加载
-function load_pnpm() {
-  if ! command -v pnpm &> /dev/null; then
-    if command -v npm &> /dev/null; then
-      local status=$(ensure_installed "pnpm" "pnpm" "npm install -g pnpm" "")
-      if [[ $status -ne 0 ]] && !(check_background_install "pnpm"); then
-        return 1
-      fi
-    else
-      echo "需要先安装 npm，尝试加载 Node.js 环境..."
-      load_fnm
-      if ! command -v npm &> /dev/null; then
-        echo "npm 未安装，无法继续"
-        return 1
-      fi
-      npm install -g pnpm
-    fi
-  fi
-  
-  export PNPM_HOME="/Users/ab/Library/pnpm"
-  export PATH="$PNPM_HOME:$PATH"
-}
-
-# 常用别名
-alias vim='nvim'
-alias tmux='TERM=screen-256color tmux -2'
-alias proxy='export all_proxy=socks5://127.0.0.1:1080'
-alias unproxy='unset all_proxy'
-alias sho='ssh -o ServerAliveInterval=60'
-
-# 轻量级主题配置
-function setup_pure_theme() {
-  if [[ ! -d "$HOME/.zsh/pure" ]]; then
-    if check_background_install "pure"; then
-      fpath+=("$HOME/.zsh/pure")
-      autoload -U promptinit; promptinit
-      prompt pure
-    else
-      # 使用临时简单主题
-      PS1='%F{cyan}%~%f %F{green}❯%f '
-    fi
-  else
-    fpath+=("$HOME/.zsh/pure")
-    autoload -U promptinit; promptinit
-    prompt pure
-  fi
-}
-
-# 命令包装函数
-function wrap_command() {
+# 命令包装函数 - 改进版本避免递归调用
+wrap_command() {
   local cmd=$1
   local load_func=$2
   
   eval "function $cmd() {
-    $load_func
+    $load_func true  # 静默模式加载
     command $cmd \"\$@\"
   }"
 }
 
-# 创建命令别名来触发环境加载
+# 创建命令别名来触发环境加载 - 不包装 fnm 本身
 wrap_command "node" "load_fnm"
 wrap_command "npm" "load_fnm"
 wrap_command "npx" "load_fnm"
-wrap_command "fnm" "load_fnm"
-wrap_command "java" "load_jdk"
-wrap_command "javac" "load_jdk"
-wrap_command "mvn" "load_maven"
-wrap_command "go" "load_go"
-wrap_command "pnpm" "load_pnpm"
+wrap_command "yarn" "load_fnm"
+wrap_command "pnpm" "load_fnm"
+
+# 确保 fnm 命令可用 - 在 shell 启动时预加载
+if ! command -v fnm &>/dev/null; then
+  # 尝试添加 fnm 到 PATH
+  for fnm_path in "$HOME/.fnm" "/opt/homebrew/bin" "/usr/local/bin"; do
+    if [[ -x "$fnm_path/fnm" ]]; then
+      export PATH="$fnm_path:$PATH"
+      break
+    fi
+  done
+fi
+
+# 轻量级主题配置
+setup_pure_theme() {
+  # 如果 Pure 主题已安装
+  if [[ -d "$HOME/.zsh/pure" ]]; then
+    fpath+=("$HOME/.zsh/pure")
+    autoload -U promptinit; promptinit
+    
+    # Pure 主题配置
+    zstyle ':prompt:pure:prompt:success' color cyan
+    zstyle ':prompt:pure:git:branch' color yellow
+    zstyle ':prompt:pure:git:dirty' color red
+    
+    prompt pure
+    return 0
+  fi
+  
+  # 使用临时简单主题
+  PS1='%F{cyan}%~%f %F{green}❯%f '
+  return 1
+}
 
 # 初始化配置
-function init_config() {
-  echo "初始化 zsh 配置..."
-  
-  # 检查并启动必要工具的安装
-  check_required_tools
+init_config() {
+  echo -e "${BLUE}=== 初始化 zsh 配置 ===${NC}"
   
   # 设置临时提示符
   PS1='%F{cyan}%~%f %F{green}❯%f '
   
-  # 异步加载主题
-  (
-    sleep 1  # 给安装一点时间
-    setup_pure_theme
-  ) &
+  # 检查并启动必要工具的安装
+  check_required_tools
   
-  # 监控后台安装进度
-  (
-    # 获取关联数组大小
-    total=${(k)#tools_to_install}
-    installed=0
-    
-    while [[ $installed -lt $total ]]; do
-      installed=0
-      # 正确遍历关联数组
-      for tool in ${(k)tools_to_install}; do
-        if command -v $tool &>/dev/null || [[ -f "/tmp/zsh_${tool}_installed" ]] || [[ "$tool" == "pure" && -d "$HOME/.zsh/pure" ]]; then
-          ((installed++))
-        fi
-      done
-      
-      percent=$((installed * 100 / total))
-      show_progress $percent
-      sleep 0.5
-      
-      if [[ $installed -eq $total ]]; then
-        printf "\r%-60s\r" ""  # 清除进度条
-        echo "所有工具安装完成！"
-        # 重新加载 zsh-defer 如果已安装
-        if [[ -f ~/.zsh-defer.plugin.zsh ]]; then
-          source ~/.zsh-defer.plugin.zsh
-        fi
-        # 应用主题
-        setup_pure_theme
-        break
-      fi
-    done
-  ) &
+  # 应用主题
+  setup_pure_theme
+  
+  # 确保 fnm 环境变量设置正确
+  if command -v fnm &>/dev/null; then
+    eval "$(command fnm env --use-on-cd)" 2>/dev/null || true
+  fi
+  
+  echo -e "${GREEN}✓ zsh 配置初始化完成${NC}"
 }
 
 # 启动初始化
