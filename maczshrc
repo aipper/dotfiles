@@ -524,5 +524,19 @@ init_config() {
   echo -e "${GREEN}✓ zsh 配置初始化完成${NC}"
 }
 
+
 # 启动初始化
 init_config
+
+
+export MAVEN_HOME=/Users/ab/soft/mvn
+export PATH="$PATH:$MAVEN_HOME/bin"
+
+alias sho='ssh -o ServerAliveInterval=60 '
+alias shozc='sho -p 7004 zczx@60.205.149.76'
+alias vim='nvim'
+alias tmux='TERM=screen-256color tmux -2'
+alias proxy='export all_proxy=http://127.0.0.1:1081'
+alias unproxy='unset all_proxy'
+alias mvnd='mvn clean deploy -Dmaven.test.skip=true -Dmaven.compile.fork=true -T 1C'
+alias mvnp='mvn clean package  -Dmaven.test.skip=true -Dmaven.compile.fork=true -T 1C'
