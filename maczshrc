@@ -1,7 +1,7 @@
 #!/usr/bin/env zsh
 # 优化版 zshrc 配置 - 自动安装依赖并显示进度条
 # 作者: Claude
-# 版本: 2.2
+# 版本: 3.0
 
 # 基础配置
 typeset -U PATH
@@ -203,7 +203,7 @@ ensure_installed() {
   local auto_install=${6:-false}
   
   # 首先检查命令是否可用
-  if command -v $check_cmd &> /dev/null; then
+  if eval "$check_cmd" &> /dev/null; then
     echo "installed" > "$ZSH_CACHE_DIR/${tool_name}_status"
     echo -e "${GREEN}✓ $tool_name 已安装${NC}"
     return 0  # 已安装
@@ -215,7 +215,7 @@ ensure_installed() {
   case "$install_status" in
     "installed")
       # 状态文件说已安装，但命令不可用，可能是状态文件过时
-      if ! command -v $check_cmd &> /dev/null; then
+      if ! eval "$check_cmd" &> /dev/null; then
         echo "unknown" > "$ZSH_CACHE_DIR/${tool_name}_status"
         echo -e "${YELLOW}⚠️ $tool_name 状态文件过时${NC}"
       else
@@ -227,7 +227,7 @@ ensure_installed() {
       # 正在安装中
       echo -e "${BLUE}🔄 $tool_name 正在安装中...${NC}"
       show_install_progress "$tool_name"
-      if command -v $check_cmd &> /dev/null; then
+      if eval "$check_cmd" &> /dev/null; then
         echo "installed" > "$ZSH_CACHE_DIR/${tool_name}_status"
         echo -e "${GREEN}✓ $tool_name 已安装${NC}"
         return 0
@@ -253,7 +253,7 @@ ensure_installed() {
     install_tool_bg "$tool_name" "$install_cmd" "$post_install"
     
     # 检查安装结果
-    if command -v $check_cmd &> /dev/null; then
+    if eval "$check_cmd" &> /dev/null; then
       echo "installed" > "$ZSH_CACHE_DIR/${tool_name}_status"
       echo -e "${GREEN}✓ $tool_name 安装成功${NC}"
       return 0
@@ -272,8 +272,10 @@ typeset -A tools_to_install
 tools_to_install=(
   ["homebrew"]="macOS 包管理器，用于安装其他工具"
   ["fnm"]="Node.js 版本管理器，用于管理不同版本的 Node.js"
-  ["pure"]="轻量级 Zsh 主题，提供美观的命令行界面"
-  ["zsh-defer"]="Zsh 异步加载插件，提高 shell 启动速度"
+  ["oh-my-zsh"]="ZSH 配置管理框架，提供插件和主题支持"
+  ["zsh-syntax-highlighting"]="ZSH 语法高亮插件"
+  ["zsh-autosuggestions"]="ZSH 命令自动建议插件"
+  ["z"]="目录快速跳转工具"
 )
 
 # 检查必要工具 - 交互式
@@ -307,6 +309,43 @@ check_required_tools() {
     echo -e "${GREEN}✓ 使用 Intel Homebrew (/usr/local)${NC}"
   fi
   
+  # 检查 oh-my-zsh
+  if [[ ! -d "$HOME/.oh-my-zsh" ]]; then
+    ensure_installed "oh-my-zsh" "test -d $HOME/.oh-my-zsh" 'sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended' "setup_omz" "ZSH 配置管理框架，提供插件和主题支持"
+  else
+    echo "installed" > "$ZSH_CACHE_DIR/oh-my-zsh_status"
+    echo -e "${GREEN}✓ oh-my-zsh 已安装${NC}"
+  fi
+
+  # 检查 zsh-syntax-highlighting 插件
+  if [[ ! -d "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting" ]]; then
+    ensure_installed "zsh-syntax-highlighting" "test -d ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting" "git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting" "" "ZSH 语法高亮插件"
+  else
+    echo "installed" > "$ZSH_CACHE_DIR/zsh-syntax-highlighting_status"
+    echo -e "${GREEN}✓ zsh-syntax-highlighting 已安装${NC}"
+  fi
+
+  # 检查 zsh-autosuggestions 插件
+  if [[ ! -d "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-autosuggestions" ]]; then
+    ensure_installed "zsh-autosuggestions" "test -d ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-autosuggestions" "git clone https://github.com/zsh-users/zsh-autosuggestions.git ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-autosuggestions" "" "ZSH 命令自动建议插件"
+  else
+    echo "installed" > "$ZSH_CACHE_DIR/zsh-autosuggestions_status"
+    echo -e "${GREEN}✓ zsh-autosuggestions 已安装${NC}"
+  fi
+
+  # 检查 z 插件
+  if command -v brew &> /dev/null; then
+    ensure_installed "z" "brew list z &>/dev/null" "brew install z" "" "目录快速跳转工具"
+  else
+    # 如果没有brew，可以直接下载z到custom目录
+    if [[ ! -d "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/z" ]]; then
+      ensure_installed "z" "test -d ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/z" "mkdir -p ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/z && curl -fsSL https://raw.githubusercontent.com/rupa/z/master/z.sh -o ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/z/z.sh" "" "目录快速跳转工具"
+    else
+      echo "installed" > "$ZSH_CACHE_DIR/z_status"
+      echo -e "${GREEN}✓ z 已安装${NC}"
+    fi
+  fi
+  
   # 检查 fnm - 更全面的检测
   if command -v fnm &>/dev/null || [[ -x "/opt/homebrew/bin/fnm" ]] || [[ -x "/usr/local/bin/fnm" ]] || [[ -x "$HOME/.fnm/fnm" ]]; then
     echo "installed" > "$ZSH_CACHE_DIR/fnm_status"
@@ -314,24 +353,7 @@ check_required_tools() {
     # 确保 fnm 环境变量设置正确
     setup_fnm
   else
-    ensure_installed "fnm" "fnm" "brew install fnm" "setup_fnm" "Node.js 版本管理器，用于管理不同版本的 Node.js"
-  fi
-  
-  # 检查 Pure 主题
-  if [[ ! -d "$HOME/.zsh/pure" ]]; then
-    ensure_installed "pure" "test -d $HOME/.zsh/pure" "mkdir -p $HOME/.zsh/pure && git clone https://github.com/sindresorhus/pure.git $HOME/.zsh/pure" "" "轻量级 Zsh 主题，提供美观的命令行界面"
-  else
-    echo "installed" > "$ZSH_CACHE_DIR/pure_status"
-    echo -e "${GREEN}✓ Pure 主题已安装${NC}"
-  fi
-  
-  # 检查 zsh-defer
-  if [[ ! -f "$HOME/.zsh/zsh-defer/zsh-defer.plugin.zsh" ]]; then
-    ensure_installed "zsh-defer" "test -f $HOME/.zsh/zsh-defer/zsh-defer.plugin.zsh" "mkdir -p $HOME/.zsh/zsh-defer && curl -fsSL https://raw.githubusercontent.com/romkatv/zsh-defer/master/zsh-defer.plugin.zsh -o $HOME/.zsh/zsh-defer/zsh-defer.plugin.zsh" "" "Zsh 异步加载插件，提高 shell 启动速度"
-  else
-    echo "installed" > "$ZSH_CACHE_DIR/zsh-defer_status"
-    echo -e "${GREEN}✓ zsh-defer 已安装${NC}"
-    source "$HOME/.zsh/zsh-defer/zsh-defer.plugin.zsh"
+    ensure_installed "fnm" "command -v fnm" "brew install fnm" "setup_fnm" "Node.js 版本管理器，用于管理不同版本的 Node.js"
   fi
   
   echo -e "${BLUE}=== 检查完成 ===${NC}\n"
@@ -409,7 +431,7 @@ load_fnm() {
   # 如果 fnm 未安装且不是静默模式，尝试安装
   if [[ "$silent" == "false" ]]; then
     echo -e "${YELLOW}⚠️ fnm 未安装，正在尝试安装...${NC}"
-    ensure_installed "fnm" "fnm" "brew install fnm" "setup_fnm" "Node.js 版本管理器" true
+    ensure_installed "fnm" "command -v fnm" "brew install fnm" "setup_fnm" "Node.js 版本管理器" true
     
     # 再次检查 fnm 是否可用
     if command -v fnm &>/dev/null; then
@@ -420,6 +442,34 @@ load_fnm() {
       echo -e "${RED}✗ 无法加载 fnm${NC}"
       return 1
     fi
+  fi
+  
+  return 1
+}
+
+# oh-my-zsh 设置函数
+setup_omz() {
+  # 配置 oh-my-zsh
+  export ZSH="$HOME/.oh-my-zsh"
+  
+  # 设置主题 - 使用默认的robbyrussell，可以根据需要更换
+  ZSH_THEME="robbyrussell"
+  
+  # 禁用自动更新提示
+  DISABLE_AUTO_UPDATE="true"
+  
+  # 配置插件
+  plugins=(
+    git
+    z
+    zsh-syntax-highlighting
+    zsh-autosuggestions
+  )
+  
+  # 加载 oh-my-zsh
+  if [[ -f "$ZSH/oh-my-zsh.sh" ]]; then
+    source "$ZSH/oh-my-zsh.sh"
+    return 0
   fi
   
   return 1
@@ -482,27 +532,6 @@ if ! command -v fnm &>/dev/null; then
   done
 fi
 
-# 轻量级主题配置
-setup_pure_theme() {
-  # 如果 Pure 主题已安装
-  if [[ -d "$HOME/.zsh/pure" ]]; then
-    fpath+=("$HOME/.zsh/pure")
-    autoload -U promptinit; promptinit
-    
-    # Pure 主题配置
-    zstyle ':prompt:pure:prompt:success' color cyan
-    zstyle ':prompt:pure:git:branch' color yellow
-    zstyle ':prompt:pure:git:dirty' color red
-    
-    prompt pure
-    return 0
-  fi
-  
-  # 使用临时简单主题
-  PS1='%F{cyan}%~%f %F{green}❯%f '
-  return 1
-}
-
 # 初始化配置
 init_config() {
   echo -e "${BLUE}=== 初始化 zsh 配置 ===${NC}"
@@ -513,8 +542,10 @@ init_config() {
   # 检查并启动必要工具的安装
   check_required_tools
   
-  # 应用主题
-  setup_pure_theme
+  # 配置 oh-my-zsh
+  if [[ -d "$HOME/.oh-my-zsh" ]]; then
+    setup_omz
+  fi
   
   # 确保 fnm 环境变量设置正确
   if command -v fnm &>/dev/null; then
@@ -524,14 +555,10 @@ init_config() {
   echo -e "${GREEN}✓ zsh 配置初始化完成${NC}"
 }
 
-
 # 启动初始化
 init_config
 
-
-export MAVEN_HOME=/Users/ab/soft/mvn
-export PATH="$PATH:$MAVEN_HOME/bin"
-
+# 加载用户别名配置
 alias sho='ssh -o ServerAliveInterval=60 '
 alias shozc='sho -p 7004 zczx@60.205.149.76'
 alias vim='nvim'
@@ -540,3 +567,7 @@ alias proxy='export all_proxy=http://127.0.0.1:1081'
 alias unproxy='unset all_proxy'
 alias mvnd='mvn clean deploy -Dmaven.test.skip=true -Dmaven.compile.fork=true -T 1C'
 alias mvnp='mvn clean package  -Dmaven.test.skip=true -Dmaven.compile.fork=true -T 1C'
+
+# Maven配置
+export MAVEN_HOME=/Users/ab/soft/mvn
+export PATH="$PATH:$MAVEN_HOME/bin"
