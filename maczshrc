@@ -567,7 +567,11 @@ alias proxy='export all_proxy=http://127.0.0.1:1081'
 alias unproxy='unset all_proxy'
 alias mvnd='mvn clean deploy -Dmaven.test.skip=true -Dmaven.compile.fork=true -T 1C'
 alias mvnp='mvn clean package  -Dmaven.test.skip=true -Dmaven.compile.fork=true -T 1C'
-
+#android
+export ANDROID_HOME=$HOME/Library/Android/sdk
+export PATH=$PATH:$ANDROID_HOME/platform-tools
+export PATH=$PATH:$ANDROID_HOME/tools
+export PATH=$PATH:$ANDROID_HOME/tools/bin
 # Maven配置
 export MAVEN_HOME=/Users/ab/soft/mvn
 export PATH="$PATH:$MAVEN_HOME/bin"
