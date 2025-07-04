@@ -155,5 +155,91 @@ require("lazy").setup({
   {"nvim-lua/popup.nvim"},
   {"nvim-lua/plenary.nvim"},
   {"j-hui/fidget.nvim"},
+{
+  "saecki/crates.nvim",
+  event = { "BufRead Cargo.toml" },
+  dependencies = { "nvim-lua/plenary.nvim" },
+  config = function()
+    require("crates").setup()
+  end,
+},
+{
+  "simrat39/inlay-hints.nvim",
+  config = function()
+    require("inlay-hints").setup()
+  end,
+},
+{
+  "stevearc/oil.nvim",
+  opts = {},
+  -- 可以映射快捷键，例如:
+  keys = {
+    { "-", "<cmd>Oil<CR>", desc = "Open parent directory" },
+  },
+},
+
+{
+  "nvim-telescope/telescope-file-browser.nvim",
+  dependencies = { "nvim-telescope/telescope.nvim", "nvim-lua/plenary.nvim" },
+},
+{
+  "ThePrimeagen/refactoring.nvim",
+  dependencies = {
+    "nvim-lua/plenary.nvim",
+    "nvim-treesitter/nvim-treesitter",
+  },
+  config = function()
+    require("refactoring").setup()
+  end,
+},
+{
+  "folke/noice.nvim",
+  event = "VeryLazy",
+  dependencies = {
+    "MunifTanjim/nui.nvim",
+    "rcarriga/nvim-notify",
+  },
+  config = function()
+    require("noice").setup({
+      -- 配置选项
+    })
+  end,
+},
+{
+  "petertriho/nvim-scrollbar",
+  config = function()
+    require("scrollbar").setup()
+  end,
+},
+{
+  "kylechui/nvim-surround",
+  version = "*",
+  event = "VeryLazy",
+  config = function()
+    require("nvim-surround").setup()
+  end,
+},
+{
+  "numToStr/Comment.nvim",
+  config = function()
+    require("Comment").setup()
+  end,
+},
+{
+  "nvim-neotest/neotest",
+  dependencies = {
+    "nvim-lua/plenary.nvim",
+    "nvim-treesitter/nvim-treesitter",
+    "rouge8/neotest-rust",  -- Rust 支持
+  },
+  config = function()
+    require("neotest").setup({
+      adapters = {
+        require("neotest-rust"),
+      },
+    })
+  end,
+},
+{"lewis6991/impatient.nvim"}
 
 })
