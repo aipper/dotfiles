@@ -231,6 +231,8 @@ require("lazy").setup({
     "nvim-lua/plenary.nvim",
     "nvim-treesitter/nvim-treesitter",
     "rouge8/neotest-rust",  -- Rust 支持
+    "mfussenegger/nvim-dap",
+    "nvim-neotest/nvim-nio",
   },
   config = function()
     require("neotest").setup({

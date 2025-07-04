@@ -1,3 +1,4 @@
+require('conf.impatient')
 require("conf.cyberdream")
 require("conf.autocmd")
 require("conf.nvimtree")

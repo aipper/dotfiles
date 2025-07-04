@@ -40,3 +40,17 @@ map('n', '<leader>nh', '<cmd>lua require("notify").history()<CR>', opt)
 map('n', '<leader>nl', '<cmd>lua require("notify").last()<CR>', opt)
 
 map('n', '<leader>fn', '<cmd>Telescope notify<CR>', opt)
+
+
+local function is_lazy_buffer()
+    return vim.bo.filetype =='lazy'
+end
+
+vim.keymap.set('n','q',function()
+    if is_lazy_buffer() then
+        vim.cmd('close')
+    else
+        vim.cmd('NvimTreeClose')
+    end
+end, {silent=true}
+)
