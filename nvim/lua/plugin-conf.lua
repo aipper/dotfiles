@@ -15,6 +15,7 @@ require("conf.lsp_signature")
 require("conf.lazygit")
 require("conf.bufferline")
 require("conf.lualine")
+require("conf.fidget")
 
 -- 确保这些配置按照以下顺序加载
 require("conf.mason")

@@ -151,4 +151,9 @@ require("lazy").setup({
 		priority = 1000,
 		opts = {},
 	},
+  -- popup
+  {"nvim-lua/popup.nvim"},
+  {"nvim-lua/plenary.nvim"},
+  {"j-hui/fidget.nvim"},
+
 })
