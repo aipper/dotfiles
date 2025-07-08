@@ -242,6 +242,14 @@ require("lazy").setup({
     })
   end,
 },
-{"lewis6991/impatient.nvim"}
+{"lewis6991/impatient.nvim"},
+{
+  "numToStr/FTerm.nvim",
+  config = function()
+    require("FTerm").setup()
+    vim.keymap.set("n", "<C-i>", '<cmd>lua require("FTerm").toggle()<CR>', { desc = "Toggle Terminal" })
+    vim.keymap.set("t", "<C-i>", '<C-\\><C-n><cmd>lua require("FTerm").toggle()<CR>', { desc = "Toggle Terminal" })
+  end,
+}
 
 })
