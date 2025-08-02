@@ -2,8 +2,8 @@
 
 # 极速版 zshrc 配置
 # 作者: Claude
-# 版本: 6.1
-# 修复历史命令提示功能
+# 版本: 6.2
+# 修复历史命令提示功能和路径加载顺序
 
 # ===== 历史记录配置 =====
 export HISTFILE=~/.zsh_history
@@ -21,15 +21,26 @@ setopt HIST_SAVE_NO_DUPS        # 保存时忽略重复
 setopt HIST_REDUCE_BLANKS       # 删除多余空白
 setopt INC_APPEND_HISTORY       # 立即追加历史
 
+# ===== 环境变量配置 - 先定义变量再使用 =====
+export ANDROID_HOME=$HOME/Library/Android/sdk
+export PNPM_HOME="/Users/ab/Library/pnpm"
+export MAVEN_HOME=/Users/ab/soft/mvn
+
 # 基础路径配置 - 静态设置，避免动态检查
-export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$HOME/bin:$HOME/.fnm:$PNPM_HOME"
+export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$HOME/bin:$MAVEN_HOME/bin:$PNPM_HOME:$HOME/.fnm"
+
+# Rust 路径配置
+if [[ -d "$HOME/.cargo/bin" ]]; then
+    export PATH="$HOME/.cargo/bin:$PATH"
+fi
 
 # 快速显示帮助信息
 printf '\033[0;34m=== 开发工具安装命令 ===\033[0m
 \033[0;36mHomebrew:\033[0m /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-\033[0;36mOh-my-zsh:\033[0m sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+\033[0;36mOh-my-zsh:\033[0m sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/master/tools/install.sh)"
 \033[0;36mfnm:\033[0m brew install fnm
 \033[0;36mNode.js:\033[0m fnm install --lts && fnm default lts
+\033[0;36mRust:\033[0m curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh
 \033[0;36mPlugins:\033[0m git clone https://github.com/zsh-users/zsh-{syntax-highlighting,autosuggestions}.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/
 \033[0;36mz:\033[0m brew install z
 \033[0;33m=== 安装后重启终端 ===\033[0m\n'
@@ -46,11 +57,6 @@ alias proxy='export all_proxy=http://127.0.0.1:7897'
 alias unproxy='unset all_proxy'
 alias mvnd='mvn clean deploy -Dmaven.test.skip=true -Dmaven.compile.fork=true -T 1C'
 alias mvnp='mvn clean package -Dmaven.test.skip=true -Dmaven.compile.fork=true -T 1C'
-
-# 环境变量 - 静态设置
-export ANDROID_HOME=$HOME/Library/Android/sdk
-export MAVEN_HOME=/Users/ab/soft/mvn
-export PNPM_HOME="/Users/ab/Library/pnpm"
 
 # ===== 改进的懒加载函数 =====
 lazy_load_brew() {
@@ -70,7 +76,7 @@ lazy_load_omz() {
         DISABLE_AUTO_UPDATE="true"
         plugins=(git z zsh-syntax-highlighting zsh-autosuggestions)
         source "$ZSH/oh-my-zsh.sh"
-        
+
         # 确保 autosuggestions 插件正确加载
         if [[ -f "$ZSH/custom/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh" ]]; then
             source "$ZSH/custom/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh"
@@ -78,12 +84,63 @@ lazy_load_omz() {
     fi
 }
 
+# fnm 懒加载函数 - 修复 node 环境问题
 lazy_load_fnm() {
+    local cmd_name="$1"
+    shift
+    
+    # 取消函数定义，避免递归调用
     unfunction fnm node npm npx yarn pnpm 2>/dev/null
+    
+    # 初始化 fnm 环境
     if command -v fnm &>/dev/null; then
         eval "$(fnm env --use-on-cd)"
+        # 确保当前目录的 node 版本被激活
+        if [[ -f .nvmrc || -f .node-version ]]; then
+            fnm use &>/dev/null
+        fi
     fi
-    "$0" "$@"
+    
+    # 执行原始命令
+    if command -v "$cmd_name" &>/dev/null; then
+        "$cmd_name" "$@"
+    else
+        echo "命令 $cmd_name 未找到，请确保已正确安装 Node.js"
+        return 1
+    fi
+}
+
+# Rust 懒加载函数 - 优化版本
+lazy_load_rust() {
+    local cmd_name="$1"
+    shift
+    
+    # 取消函数定义，避免递归调用
+    unfunction rustc cargo rustup rust-analyzer 2>/dev/null
+
+    # 检查并设置 Rust 环境变量
+    if [[ -d "$HOME/.cargo" ]]; then
+        export CARGO_HOME="$HOME/.cargo"
+        export RUSTUP_HOME="$HOME/.rustup"
+
+        # 确保路径正确添加
+        if [[ -d "$HOME/.cargo/bin" ]] && [[ ":$PATH:" != *":$HOME/.cargo/bin:"* ]]; then
+            export PATH="$HOME/.cargo/bin:$PATH"
+        fi
+
+        # 如果有 rustup，更新环境
+        if command -v rustup &>/dev/null; then
+            source "$HOME/.cargo/env" 2>/dev/null
+        fi
+    fi
+
+    # 执行原始命令
+    if command -v "$cmd_name" &>/dev/null; then
+        "$cmd_name" "$@"
+    else
+        echo "命令 $cmd_name 未找到，请确保已正确安装 Rust"
+        return 1
+    fi
 }
 
 # 创建懒加载别名
@@ -91,9 +148,17 @@ if ! command -v brew &>/dev/null; then
     function brew() { lazy_load_brew "$@"; }
 fi
 
+# Node.js 相关命令懒加载
 for cmd in fnm node npm npx yarn pnpm; do
     if ! command -v "$cmd" &>/dev/null; then
-        eval "function $cmd() { lazy_load_fnm \"\$@\"; }"
+        eval "function $cmd() { lazy_load_fnm \"\$cmd\" \"\$@\"; }"
+    fi
+done
+
+# Rust 相关命令懒加载
+for rust_cmd in rustc cargo rustup rust-analyzer; do
+    if ! command -v "$rust_cmd" &>/dev/null && [[ -d "$HOME/.cargo/bin" ]]; then
+        eval "function $rust_cmd() { lazy_load_rust \"\$rust_cmd\" \"\$@\"; }"
     fi
 done
 
