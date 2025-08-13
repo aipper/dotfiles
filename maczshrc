@@ -29,6 +29,7 @@ export MAVEN_HOME=/Users/ab/soft/mvn
 # 基础路径配置 - 静态设置，避免动态检查
 export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$HOME/bin:$MAVEN_HOME/bin:$PNPM_HOME:$HOME/.fnm"
 
+export DISPLAY=:0
 # Rust 路径配置
 if [[ -d "$HOME/.cargo/bin" ]]; then
     export PATH="$HOME/.cargo/bin:$PATH"
