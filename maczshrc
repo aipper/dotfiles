@@ -1,191 +1,305 @@
 #!/usr/bin/env zsh
 
-# 极速版 zshrc 配置
-# 作者: Claude
-# 版本: 6.2
-# 修复历史命令提示功能和路径加载顺序
+# ===== 修复 pnpm 问题的优化版 zshrc =====
+# 版本: 7.1 - 修复 Node.js 环境问题
+
+# ===== 启动时间记录（调试用） =====
+[[ -n "$ZSH_DEBUG" ]] && ZSH_START_TIME=$(($(date +%s%N)/1000000))
 
 # ===== 历史记录配置 =====
-export HISTFILE=~/.zsh_history
-export HISTSIZE=50000
-export SAVEHIST=50000
-setopt EXTENDED_HISTORY          # 记录时间戳
-setopt SHARE_HISTORY            # 实时共享历史
-setopt HIST_VERIFY              # 历史扩展时进行确认
-setopt HIST_EXPIRE_DUPS_FIRST   # 删除重复条目时，先删除旧的
-setopt HIST_IGNORE_DUPS         # 忽略连续重复命令
-setopt HIST_IGNORE_ALL_DUPS     # 忽略所有重复命令
-setopt HIST_FIND_NO_DUPS        # 查找时忽略重复
-setopt HIST_IGNORE_SPACE        # 忽略以空格开头的命令
-setopt HIST_SAVE_NO_DUPS        # 保存时忽略重复
-setopt HIST_REDUCE_BLANKS       # 删除多余空白
-setopt INC_APPEND_HISTORY       # 立即追加历史
+export HISTFILE="${HOME}/.zsh_history"
+export HISTSIZE=100000
+export SAVEHIST=100000
 
-# ===== 环境变量配置 - 先定义变量再使用 =====
-export ANDROID_HOME=$HOME/Library/Android/sdk
-export PNPM_HOME="/Users/ab/Library/pnpm"
-export MAVEN_HOME=/Users/ab/soft/mvn
+setopt EXTENDED_HISTORY SHARE_HISTORY HIST_VERIFY \
+       HIST_EXPIRE_DUPS_FIRST HIST_IGNORE_DUPS HIST_IGNORE_ALL_DUPS \
+       HIST_FIND_NO_DUPS HIST_IGNORE_SPACE HIST_SAVE_NO_DUPS \
+       HIST_REDUCE_BLANKS INC_APPEND_HISTORY
 
-# 基础路径配置 - 静态设置，避免动态检查
-export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$HOME/bin:$MAVEN_HOME/bin:$PNPM_HOME:$HOME/.fnm"
+setopt AUTO_CD CORRECT MENU_COMPLETE
 
-export DISPLAY=:0
-# Rust 路径配置
-if [[ -d "$HOME/.cargo/bin" ]]; then
-    export PATH="$HOME/.cargo/bin:$PATH"
+# ===== 环境变量配置 =====
+export ANDROID_HOME="$HOME/Library/Android/sdk"
+export PNPM_HOME="$HOME/Library/pnpm"  
+export MAVEN_HOME="$HOME/soft/mvn"
+export DISPLAY=":0"
+
+# ===== 关键修复：Node.js 环境预初始化 =====
+# 检查并预初始化 fnm 环境（仅在需要时）
+init_node_env() {
+    # 避免重复初始化
+    [[ -n "$FNM_INITIALIZED" ]] && return 0
+    
+    if command -v fnm >/dev/null 2>&1; then
+        eval "$(fnm env --use-on-cd --shell zsh)"
+        
+        # 如果有项目指定的版本，自动使用
+        if [[ -f .nvmrc ]]; then
+            fnm use --silent-if-unchanged 2>/dev/null
+        elif [[ -f .node-version ]]; then
+            fnm use --silent-if-unchanged 2>/dev/null
+        fi
+        
+        export FNM_INITIALIZED=1
+        return 0
+    else
+        echo "❌ fnm 未安装或不可用"
+        return 1
+    fi
+}
+
+# ===== PATH 构建策略 =====
+# 构建基础 PATH（不包含动态部分）
+typeset -a STATIC_PATHS=(
+    "/opt/homebrew/bin"
+    "/usr/local/bin" 
+    "$HOME/bin"
+    "$MAVEN_HOME/bin"
+    "/usr/bin"
+    "/bin"
+    "/usr/sbin"
+    "/sbin"
+)
+
+# 动态 PATH 构建函数
+build_path() {
+    typeset -U path  # 自动去重
+    path=()
+    
+    # 添加静态路径
+    for dir in $STATIC_PATHS; do
+        [[ -d "$dir" ]] && path+="$dir"
+    done
+    
+    # 添加 pnpm 路径（如果存在）
+    [[ -d "$PNPM_HOME" ]] && path+="$PNPM_HOME"
+    
+    # 添加 fnm 路径
+    [[ -d "$HOME/.fnm" ]] && path+="$HOME/.fnm"
+    
+    # 添加 Rust 路径
+    [[ -d "$HOME/.cargo/bin" ]] && path+="$HOME/.cargo/bin"
+    
+    export PATH
+}
+
+# 初始化 PATH
+build_path
+
+# ===== 智能懒加载系统（改进版） =====
+typeset -A LAZY_LOADED
+
+# Node.js 相关命令的特殊处理
+node_command_wrapper() {
+    local cmd="$1"
+    shift
+    
+    # 确保 Node.js 环境已初始化
+    if ! command -v node >/dev/null 2>&1; then
+        init_node_env || {
+            echo "❌ 无法初始化 Node.js 环境，请检查 fnm 安装"
+            return 1
+        }
+    fi
+    
+    # 移除包装函数，避免递归
+    unfunction "$cmd" 2>/dev/null
+    
+    # 执行原始命令
+    if command -v "$cmd" >/dev/null 2>&1; then
+        "$cmd" "$@"
+    else
+        echo "❌ 命令 '$cmd' 仍然不可用，请检查安装"
+        return 1
+    fi
+}
+
+# Homebrew 懒加载
+lazy_load_brew() {
+    local brew_paths=("/opt/homebrew/bin/brew" "/usr/local/bin/brew")
+    for brew_path in $brew_paths; do
+        [[ -x "$brew_path" ]] && {
+            eval "$($brew_path shellenv)"
+            build_path  # 重新构建 PATH
+            break
+        }
+    done
+}
+
+# Rust 懒加载
+lazy_load_rust() {
+    [[ -f "$HOME/.cargo/env" ]] && source "$HOME/.cargo/env"
+}
+
+# Oh My Zsh 懒加载
+lazy_load_omz() {
+    [[ -d "$HOME/.oh-my-zsh" ]] || return 1
+    
+    export ZSH="$HOME/.oh-my-zsh"
+    ZSH_THEME="robbyrussell"
+    DISABLE_AUTO_UPDATE="true"
+    
+    plugins=(
+        git
+        z
+        zsh-syntax-highlighting
+        zsh-autosuggestions
+        history-substring-search
+    )
+    
+    source "$ZSH/oh-my-zsh.sh"
+    
+    # 配置 autosuggestions
+    ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=8"
+    ZSH_AUTOSUGGEST_STRATEGY=(history completion)
+    
+    # 设置键盘绑定
+    setup_keybindings
+}
+
+# ===== 命令包装器注册 =====
+# 为 Node.js 生态命令创建特殊包装器
+node_commands=(fnm node npm npx yarn pnpm)
+for cmd in $node_commands; do
+    if ! command -v "$cmd" >/dev/null 2>&1; then
+        eval "
+        $cmd() {
+            node_command_wrapper $cmd \"\$@\"
+        }
+        "
+    fi
+done
+
+# 其他工具的懒加载包装器
+if ! command -v brew >/dev/null 2>&1; then
+    brew() {
+        unfunction brew 2>/dev/null
+        lazy_load_brew
+        brew "$@"
+    }
 fi
 
-# 快速显示帮助信息
-printf '\033[0;34m=== 开发工具安装命令 ===\033[0m
-\033[0;36mHomebrew:\033[0m /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-\033[0;36mOh-my-zsh:\033[0m sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/master/tools/install.sh)"
-\033[0;36mfnm:\033[0m brew install fnm
-\033[0;36mNode.js:\033[0m fnm install --lts && fnm default lts
-\033[0;36mRust:\033[0m curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh
-\033[0;36mPlugins:\033[0m git clone https://github.com/zsh-users/zsh-{syntax-highlighting,autosuggestions}.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/
-\033[0;36mz:\033[0m brew install z
-\033[0;33m=== 安装后重启终端 ===\033[0m\n'
+# Rust 工具
+rust_commands=(rustc cargo rustup rust-analyzer)
+for cmd in $rust_commands; do
+    if ! command -v "$cmd" >/dev/null 2>&1; then
+        eval "
+        $cmd() {
+            unfunction $cmd 2>/dev/null
+            lazy_load_rust
+            $cmd \"\$@\"
+        }
+        "
+    fi
+done
 
-# 简单提示符
-PS1='%F{cyan}%~%f %F{green}❯%f '
+# ===== 提示符 =====
+PS1='%F{cyan}%2~%f%(?.%F{green}.%F{red})❯%f '
 
-# 用户别名 - 直接定义
-alias sho='ssh -o ServerAliveInterval=60 '
+# ===== 别名定义 =====
+# 网络和SSH
+alias sho='ssh -o ServerAliveInterval=60'
 alias shozc='sho -p 7004 zczx@60.205.149.76'
-alias vim='nvim'
-alias tmux='TERM=screen-256color tmux -2'
 alias proxy='export all_proxy=http://127.0.0.1:7897'
 alias unproxy='unset all_proxy'
+
+# 开发工具
+alias vim='nvim'
+alias tmux='TERM=screen-256color tmux -2'
+
+# Maven
 alias mvnd='mvn clean deploy -Dmaven.test.skip=true -Dmaven.compile.fork=true -T 1C'
 alias mvnp='mvn clean package -Dmaven.test.skip=true -Dmaven.compile.fork=true -T 1C'
 
-# ===== 改进的懒加载函数 =====
-lazy_load_brew() {
-    unfunction brew 2>/dev/null
-    if [[ -f /opt/homebrew/bin/brew ]]; then
-        eval "$(/opt/homebrew/bin/brew shellenv)"
-    elif [[ -f /usr/local/bin/brew ]]; then
-        eval "$(/usr/local/bin/brew shellenv)"
-    fi
-    brew "$@"
-}
+# 系统工具
+alias ll='ls -la'
+alias la='ls -A'
+alias l='ls -CF'
+alias ..='cd ..'
+alias ...='cd ../..'
 
-lazy_load_omz() {
-    if [[ -d "$HOME/.oh-my-zsh" ]]; then
-        export ZSH="$HOME/.oh-my-zsh"
-        ZSH_THEME="robbyrussell"
-        DISABLE_AUTO_UPDATE="true"
-        plugins=(git z zsh-syntax-highlighting zsh-autosuggestions)
-        source "$ZSH/oh-my-zsh.sh"
-
-        # 确保 autosuggestions 插件正确加载
-        if [[ -f "$ZSH/custom/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh" ]]; then
-            source "$ZSH/custom/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh"
-        fi
+# ===== 键盘绑定设置 =====
+setup_keybindings() {
+    bindkey '^R' history-incremental-search-backward
+    bindkey '^S' history-incremental-search-forward
+    bindkey '^A' beginning-of-line
+    bindkey '^E' end-of-line
+    bindkey '^K' kill-line
+    bindkey '^U' kill-whole-line
+    
+    # 如果支持历史子字符串搜索
+    if (( $+functions[history-substring-search-up] )); then
+        bindkey '^[[A' history-substring-search-up
+        bindkey '^[[B' history-substring-search-down
     fi
 }
 
-# fnm 懒加载函数 - 修复 node 环境问题
-lazy_load_fnm() {
-    local cmd_name="$1"
-    shift
-    
-    # 取消函数定义，避免递归调用
-    unfunction fnm node npm npx yarn pnpm 2>/dev/null
-    
-    # 初始化 fnm 环境
-    if command -v fnm &>/dev/null; then
-        eval "$(fnm env --use-on-cd)"
-        # 确保当前目录的 node 版本被激活
-        if [[ -f .nvmrc || -f .node-version ]]; then
-            fnm use &>/dev/null
-        fi
-    fi
-    
-    # 执行原始命令
-    if command -v "$cmd_name" &>/dev/null; then
-        "$cmd_name" "$@"
-    else
-        echo "命令 $cmd_name 未找到，请确保已正确安装 Node.js"
-        return 1
-    fi
-}
-
-# Rust 懒加载函数 - 优化版本
-lazy_load_rust() {
-    local cmd_name="$1"
-    shift
-    
-    # 取消函数定义，避免递归调用
-    unfunction rustc cargo rustup rust-analyzer 2>/dev/null
-
-    # 检查并设置 Rust 环境变量
-    if [[ -d "$HOME/.cargo" ]]; then
-        export CARGO_HOME="$HOME/.cargo"
-        export RUSTUP_HOME="$HOME/.rustup"
-
-        # 确保路径正确添加
-        if [[ -d "$HOME/.cargo/bin" ]] && [[ ":$PATH:" != *":$HOME/.cargo/bin:"* ]]; then
-            export PATH="$HOME/.cargo/bin:$PATH"
-        fi
-
-        # 如果有 rustup，更新环境
-        if command -v rustup &>/dev/null; then
-            source "$HOME/.cargo/env" 2>/dev/null
-        fi
-    fi
-
-    # 执行原始命令
-    if command -v "$cmd_name" &>/dev/null; then
-        "$cmd_name" "$@"
-    else
-        echo "命令 $cmd_name 未找到，请确保已正确安装 Rust"
-        return 1
-    fi
-}
-
-# 创建懒加载别名
-if ! command -v brew &>/dev/null; then
-    function brew() { lazy_load_brew "$@"; }
-fi
-
-# Node.js 相关命令懒加载
-for cmd in fnm node npm npx yarn pnpm; do
-    if ! command -v "$cmd" &>/dev/null; then
-        eval "function $cmd() { lazy_load_fnm \"\$cmd\" \"\$@\"; }"
-    fi
-done
-
-# Rust 相关命令懒加载
-for rust_cmd in rustc cargo rustup rust-analyzer; do
-    if ! command -v "$rust_cmd" &>/dev/null && [[ -d "$HOME/.cargo/bin" ]]; then
-        eval "function $rust_cmd() { lazy_load_rust \"\$rust_cmd\" \"\$@\"; }"
-    fi
-done
-
-# ===== 优化的 oh-my-zsh 加载 =====
-if [[ -d "$HOME/.oh-my-zsh" ]]; then
-    # 同步加载以确保插件正常工作
-    lazy_load_omz
-else
-    # 如果没有 oh-my-zsh，手动加载基础插件
-    if [[ -f "$HOME/.zsh-autosuggestions/zsh-autosuggestions.zsh" ]]; then
-        source "$HOME/.zsh-autosuggestions/zsh-autosuggestions.zsh"
-    fi
-    if [[ -f "$HOME/.zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ]]; then
-        source "$HOME/.zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
-    fi
-fi
-
-# ===== 键盘绑定 =====
-# 启用键盘导航
-bindkey '^[[A' history-substring-search-up
-bindkey '^[[B' history-substring-search-down
+# 立即设置基本键盘绑定
 bindkey '^R' history-incremental-search-backward
 bindkey '^S' history-incremental-search-forward
 
-# ===== autosuggestions 配置 =====
-if [[ -n "${ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE}" ]]; then
-    ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=8"
-    ZSH_AUTOSUGGEST_STRATEGY=(history completion)
+# ===== 便民功能 =====
+# 显示开发工具安装帮助
+show_help() {
+    cat << 'EOF'
+🚀 开发环境快速安装指南
+══════════════════════════
+📦 Homebrew: /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+🐚 Oh-my-zsh: sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/master/tools/install.sh)"
+📎 fnm: brew install fnm
+🟢 Node.js: fnm install --lts && fnm default lts
+🦀 Rust: curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+💡 使用 'zsh-init' 加载完整增强功能
+💡 使用 'check-env' 检查环境状态
+══════════════════════════
+EOF
+}
+
+# 手动初始化完整功能
+zsh-init() {
+    lazy_load_omz
+    echo "✅ Zsh 增强功能已加载"
+}
+
+# 环境检查工具
+check-env() {
+    echo "🔍 环境状态检查"
+    echo "━━━━━━━━━━━━━━━━"
+    
+    # Node.js 环境
+    if command -v node >/dev/null 2>&1; then
+        echo "✅ Node.js: $(node --version)"
+        echo "✅ npm: $(npm --version)"
+        [[ -n "$(command -v pnpm)" ]] && echo "✅ pnpm: $(pnpm --version)"
+    else
+        echo "❌ Node.js 未可用"
+        [[ -n "$(command -v fnm)" ]] && echo "💡 fnm 可用，使用 'init_node_env' 初始化"
+    fi
+    
+    # 其他工具
+    [[ -n "$(command -v brew)" ]] && echo "✅ Homebrew: 可用"
+    [[ -n "$(command -v cargo)" ]] && echo "✅ Rust: 可用"
+    
+    echo "━━━━━━━━━━━━━━━━"
+}
+
+# 首次启动提示（仅交互式 shell）
+if [[ $- == *i* ]] && [[ ! -f "$HOME/.zshrc_help_shown" ]]; then
+    show_help
+    touch "$HOME/.zshrc_help_shown"
+    echo
+    echo "💡 提示：使用 'check-env' 检查环境，'hide-help' 隐藏帮助"
 fi
+
+# 隐藏帮助
+hide-help() {
+    touch "$HOME/.zshrc_help_shown"
+    echo "✅ 帮助信息已隐藏，使用 'show_help' 可重新显示"
+}
+
+# ===== 调试信息 =====
+[[ -n "$ZSH_DEBUG" ]] && {
+    echo "Zsh 配置加载完成，用时: $(($(date +%s%N)/1000000 - ZSH_START_TIME))ms"
+    echo "Node.js 环境状态: $(command -v node >/dev/null 2>&1 && echo '已初始化' || echo '未初始化')"
+}
