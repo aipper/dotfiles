@@ -1,21 +1,35 @@
 #!/usr/bin/env zsh
 
 # ===== 修复 pnpm 问题的优化版 zshrc =====
-# 版本: 7.2 - 修复 fnm 环境初始化问题
+# 版本: 7.3 - 修复历史记录和自动补全问题
 
 # ===== 启动时间记录（调试用） =====
 [[ -n "$ZSH_DEBUG" ]] && ZSH_START_TIME=$(($(date +%s%N)/1000000))
 
-# ===== 历史记录配置 =====
+# ===== 历史记录配置（修复版） =====
 export HISTFILE="${HOME}/.zsh_history"
 export HISTSIZE=100000
 export SAVEHIST=100000
 
-setopt EXTENDED_HISTORY SHARE_HISTORY HIST_VERIFY \
-       HIST_EXPIRE_DUPS_FIRST HIST_IGNORE_DUPS HIST_IGNORE_ALL_DUPS \
-       HIST_FIND_NO_DUPS HIST_IGNORE_SPACE HIST_SAVE_NO_DUPS \
-       HIST_REDUCE_BLANKS INC_APPEND_HISTORY
+# 确保历史文件存在并可写
+[[ ! -f "$HISTFILE" ]] && touch "$HISTFILE"
+[[ ! -w "$HISTFILE" ]] && chmod 644 "$HISTFILE"
 
+# 历史记录选项设置
+setopt EXTENDED_HISTORY          # 记录时间戳
+setopt SHARE_HISTORY            # 多个会话共享历史
+setopt HIST_VERIFY              # 历史扩展时进行验证
+setopt HIST_EXPIRE_DUPS_FIRST   # 删除重复项时优先删除旧的
+setopt HIST_IGNORE_DUPS         # 忽略连续重复命令
+setopt HIST_IGNORE_ALL_DUPS     # 忽略所有重复命令
+setopt HIST_FIND_NO_DUPS        # 搜索时忽略重复
+setopt HIST_IGNORE_SPACE        # 忽略以空格开头的命令
+setopt HIST_SAVE_NO_DUPS        # 保存时忽略重复
+setopt HIST_REDUCE_BLANKS       # 删除多余空格
+setopt INC_APPEND_HISTORY       # 立即追加到历史文件
+setopt HIST_BEEP                # 历史搜索失败时响铃
+
+# 其他 shell 选项
 setopt AUTO_CD CORRECT MENU_COMPLETE
 
 # ===== 环境变量配置 =====
@@ -178,25 +192,168 @@ alias l='ls -CF'
 alias ..='cd ..'
 alias ...='cd ../..'
 
-# ===== 键盘绑定设置 =====
+# ===== 基础补全和键盘绑定（修复版） =====
+# 启用 zsh 内置补全系统
+autoload -Uz compinit
+# 检查补全数据库是否需要更新（每天检查一次）
+if [[ -n ${ZDOTDIR}/.zcompdump(#qN.mh+24) ]]; then
+    compinit
+else
+    compinit -C  # 跳过安全检查以加快启动速度
+fi
+
+# 补全样式配置
+zstyle ':completion:*' menu select
+zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}' 'r:|[._-]=* r:|=*' 'l:|=* r:|=*'
+zstyle ':completion:*' list-colors ''
+zstyle ':completion:*:descriptions' format '%F{yellow}-- %d --%f'
+
+# ===== 历史命令自动建议（核心功能） =====
+# 安装并启用 zsh-autosuggestions（如果未安装则自动安装）
+ZSH_AUTOSUGGEST_DIR="$HOME/.zsh/zsh-autosuggestions"
+if [[ ! -d "$ZSH_AUTOSUGGEST_DIR" ]]; then
+    echo "📥 正在安装 zsh-autosuggestions..."
+    mkdir -p "$HOME/.zsh"
+    git clone https://github.com/zsh-users/zsh-autosuggestions "$ZSH_AUTOSUGGEST_DIR" 2>/dev/null || {
+        echo "❌ 无法安装 zsh-autosuggestions，请检查网络连接"
+        echo "💡 手动安装: git clone https://github.com/zsh-users/zsh-autosuggestions ~/.zsh/zsh-autosuggestions"
+    }
+fi
+
+# 加载 zsh-autosuggestions
+if [[ -f "$ZSH_AUTOSUGGEST_DIR/zsh-autosuggestions.zsh" ]]; then
+    source "$ZSH_AUTOSUGGEST_DIR/zsh-autosuggestions.zsh"
+    
+    # 配置自动建议
+    ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=#666666,underline"  # 灰色下划线
+    ZSH_AUTOSUGGEST_STRATEGY=(history completion)           # 基于历史和补全
+    ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=20                     # 最大缓冲区大小
+    ZSH_AUTOSUGGEST_USE_ASYNC=1                            # 异步建议
+    
+    echo "✅ 历史命令自动建议已启用"
+else
+    echo "⚠️  zsh-autosuggestions 未安装，历史补全功能不可用"
+    echo "💡 运行 'install-autosuggestions' 手动安装"
+fi
+
+# 安装语法高亮（可选但推荐）
+ZSH_HIGHLIGHT_DIR="$HOME/.zsh/zsh-syntax-highlighting"
+if [[ ! -d "$ZSH_HIGHLIGHT_DIR" ]]; then
+    echo "📥 正在安装 zsh-syntax-highlighting..."
+    git clone https://github.com/zsh-users/zsh-syntax-highlighting "$ZSH_HIGHLIGHT_DIR" 2>/dev/null
+fi
+
+if [[ -f "$ZSH_HIGHLIGHT_DIR/zsh-syntax-highlighting.zsh" ]]; then
+    source "$ZSH_HIGHLIGHT_DIR/zsh-syntax-highlighting.zsh"
+    echo "✅ 语法高亮已启用"
+fi
+
+# ===== 键盘绑定设置（修复版） =====
 setup_keybindings() {
-    bindkey '^R' history-incremental-search-backward
-    bindkey '^S' history-incremental-search-forward
+    # 基础编辑快捷键
     bindkey '^A' beginning-of-line
     bindkey '^E' end-of-line
     bindkey '^K' kill-line
     bindkey '^U' kill-whole-line
+    bindkey '^W' backward-kill-word
+    bindkey '^Y' yank
     
-    # 如果支持历史子字符串搜索
+    # 历史记录搜索
+    bindkey '^R' history-incremental-search-backward
+    bindkey '^S' history-incremental-search-forward
+    
+    # 自动建议快捷键（重要！）
+    if (( $+functions[_zsh_autosuggest_accept] )); then
+        bindkey '^F' autosuggest-accept              # Ctrl+F 接受建议
+        bindkey '^]' autosuggest-accept              # Ctrl+] 接受建议  
+        bindkey '^ ' autosuggest-accept              # Ctrl+Space 接受建议
+        bindkey '^E' end-of-line                     # Ctrl+E 到行尾（也会接受建议）
+        bindkey '^\t' autosuggest-execute            # Ctrl+Tab 执行建议
+    fi
+    
+    # 如果有 Oh My Zsh 的历史子字符串搜索插件
     if (( $+functions[history-substring-search-up] )); then
         bindkey '^[[A' history-substring-search-up
         bindkey '^[[B' history-substring-search-down
+        bindkey '^P' history-substring-search-up
+        bindkey '^N' history-substring-search-down
+    else
+        # 使用内置的历史搜索
+        bindkey '^[[A' up-line-or-history
+        bindkey '^[[B' down-line-or-history
+        bindkey '^P' up-line-or-history
+        bindkey '^N' down-line-or-history
+    fi
+    
+    # Tab 补全
+    bindkey '^I' complete-word
+    bindkey '^[[Z' reverse-menu-complete  # Shift+Tab
+    
+    # 右箭头接受自动建议
+    if (( $+functions[_zsh_autosuggest_partial_accept] )); then
+        bindkey '^[[C' forward-char              # 右箭头：向前移动光标
+        bindkey '^[f' autosuggest-partial-accept # Alt+F：部分接受建议
     fi
 }
 
 # 立即设置基本键盘绑定
-bindkey '^R' history-incremental-search-backward
-bindkey '^S' history-incremental-search-forward
+setup_keybindings
+
+# ===== 历史记录修复函数 =====
+fix-history() {
+    echo "🔧 修复历史记录..."
+    
+    # 检查历史文件
+    if [[ ! -f "$HISTFILE" ]]; then
+        echo "📝 创建历史文件: $HISTFILE"
+        touch "$HISTFILE"
+    fi
+    
+    # 检查权限
+    if [[ ! -w "$HISTFILE" ]]; then
+        echo "🔐 修复历史文件权限"
+        chmod 644 "$HISTFILE"
+    fi
+    
+    # 重新加载历史
+    echo "🔄 重新加载历史记录"
+    fc -R "$HISTFILE"
+    
+    # 显示当前历史状态
+    echo "📊 历史文件: $HISTFILE"
+    echo "📊 历史记录数: $(fc -l | wc -l)"
+    echo "✅ 历史记录修复完成"
+}
+
+# 安装自动建议插件
+install-autosuggestions() {
+    echo "📥 安装 zsh-autosuggestions..."
+    mkdir -p "$HOME/.zsh"
+    
+    if git clone https://github.com/zsh-users/zsh-autosuggestions "$HOME/.zsh/zsh-autosuggestions"; then
+        echo "✅ zsh-autosuggestions 安装成功"
+        echo "🔄 请重新加载配置: source ~/.zshrc"
+    else
+        echo "❌ 安装失败，请检查网络连接或手动安装"
+        echo "💡 手动安装命令:"
+        echo "   git clone https://github.com/zsh-users/zsh-autosuggestions ~/.zsh/zsh-autosuggestions"
+    fi
+}
+
+# 测试自动建议功能
+test-autosuggestions() {
+    echo "🧪 测试历史命令自动建议功能..."
+    echo
+    echo "请按以下步骤测试："
+    echo "1. 输入一个命令（如: ls -la）并执行"
+    echo "2. 清空当前行，然后输入 'ls'（不要按回车）"
+    echo "3. 如果看到灰色的建议文字，按以下快捷键："
+    echo "   - Tab 或 → 键：接受建议"
+    echo "   - Ctrl+F：接受建议"
+    echo "   - Ctrl+E：移到行尾并接受建议"
+    echo
+    echo "如果没有看到建议，请运行 'install-autosuggestions'"
+}
 
 # ===== 便民功能 =====
 # 显示开发工具安装帮助
@@ -212,6 +369,7 @@ show_help() {
 
 💡 使用 'zsh-init' 加载完整增强功能
 💡 使用 'check-env' 检查环境状态
+💡 使用 'fix-history' 修复历史记录问题
 ══════════════════════════
 EOF
 }
@@ -220,12 +378,21 @@ EOF
 zsh-init() {
     lazy_load_omz
     echo "✅ Zsh 增强功能已加载"
+    echo "✅ 历史搜索和自动补全已启用"
 }
 
 # 环境检查工具
 check-env() {
     echo "🔍 环境状态检查"
     echo "━━━━━━━━━━━━━━━━"
+    
+    # 历史记录状态
+    echo "📚 历史记录状态："
+    echo "   文件位置: $HISTFILE"
+    echo "   文件存在: $([[ -f "$HISTFILE" ]] && echo '✅' || echo '❌')"
+    echo "   文件可写: $([[ -w "$HISTFILE" ]] && echo '✅' || echo '❌')"
+    echo "   记录数量: $(fc -l 2>/dev/null | wc -l | tr -d ' ')"
+    echo
     
     # Node.js 环境（新增 fnm 状态检查）
     if command -v fnm >/dev/null 2>&1; then
@@ -249,7 +416,7 @@ if [[ $- == *i* ]] && [[ ! -f "$HOME/.zshrc_help_shown" ]]; then
     show_help
     touch "$HOME/.zshrc_help_shown"
     echo
-    echo "💡 提示：使用 'check-env' 检查环境，'hide-help' 隐藏帮助"
+    echo "💡 提示：使用 'check-env' 检查环境，'fix-history' 修复历史记录"
 fi
 
 # 隐藏帮助
@@ -262,4 +429,5 @@ hide-help() {
 [[ -n "$ZSH_DEBUG" ]] && {
     echo "Zsh 配置加载完成，用时: $(($(date +%s%N)/1000000 - ZSH_START_TIME))ms"
     echo "Node.js 环境状态: $(command -v node >/dev/null 2>&1 && echo '已初始化' || echo '未初始化')"
+    echo "历史记录状态: $(fc -l | wc -l) 条记录"
 }
