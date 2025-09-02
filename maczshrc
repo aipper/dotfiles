@@ -1,7 +1,7 @@
 #!/usr/bin/env zsh
 
-# ===== 修复 pnpm 问题的优化版 zshrc =====
-# 版本: 7.3 - 修复历史记录和自动补全问题
+# ===== 修复 Maven 和环境变量问题的优化版 zshrc =====
+# 版本: 7.4 - 修复 Maven 不生效问题
 
 # ===== 启动时间记录（调试用） =====
 [[ -n "$ZSH_DEBUG" ]] && ZSH_START_TIME=$(($(date +%s%N)/1000000))
@@ -32,26 +32,65 @@ setopt HIST_BEEP                # 历史搜索失败时响铃
 # 其他 shell 选项
 setopt AUTO_CD CORRECT MENU_COMPLETE
 
-# ===== 环境变量配置 =====
+# ===== 环境变量配置（修复版） =====
+# 检测 Maven 安装位置
+detect_maven_home() {
+    local maven_candidates=(
+        "$HOME/soft/mvn"
+        "$HOME/apache-maven"
+        "$HOME/.m2/wrapper/dists"
+        "/opt/homebrew/share/maven"
+        "/usr/local/share/maven"
+        "/opt/maven"
+        "/usr/share/maven"
+    )
+    
+    for candidate in $maven_candidates; do
+        if [[ -d "$candidate" && -f "$candidate/bin/mvn" ]]; then
+            echo "$candidate"
+            return 0
+        fi
+    done
+    
+    # 通过 which 命令查找
+    local mvn_path=$(which mvn 2>/dev/null)
+    if [[ -n "$mvn_path" ]]; then
+        # 从 /path/to/maven/bin/mvn 提取 /path/to/maven
+        echo "${mvn_path%/bin/mvn}"
+        return 0
+    fi
+    
+    return 1
+}
+
+# 自动检测并设置 Maven 路径
+if DETECTED_MAVEN=$(detect_maven_home); then
+    export MAVEN_HOME="$DETECTED_MAVEN"
+    [[ -n "$ZSH_DEBUG" ]] && echo "🔍 检测到 Maven: $MAVEN_HOME"
+else
+    # 使用默认路径（向后兼容）
+    export MAVEN_HOME="$HOME/soft/mvn"
+    [[ -n "$ZSH_DEBUG" ]] && echo "⚠️  使用默认 Maven 路径: $MAVEN_HOME"
+fi
+
+# 其他环境变量
 export ANDROID_HOME="$HOME/Library/Android/sdk"
-export PNPM_HOME="$HOME/Library/pnpm"  
-export MAVEN_HOME="$HOME/soft/mvn"
+export PNPM_HOME="$HOME/Library/pnpm"
 export DISPLAY=":0"
 
-# ===== PATH 构建策略 =====
+# ===== 改进的 PATH 构建策略 =====
 # 构建基础 PATH（不包含动态部分）
 typeset -a STATIC_PATHS=(
     "/opt/homebrew/bin"
     "/usr/local/bin" 
     "$HOME/bin"
-    "$MAVEN_HOME/bin"
     "/usr/bin"
     "/bin"
     "/usr/sbin"
     "/sbin"
 )
 
-# 动态 PATH 构建函数
+# 优化的 PATH 构建函数（修复 Maven 问题）
 build_path() {
     typeset -U path  # 自动去重
     path=()
@@ -60,6 +99,21 @@ build_path() {
     for dir in $STATIC_PATHS; do
         [[ -d "$dir" ]] && path+="$dir"
     done
+    
+    # 添加 Maven 路径（强制添加，修复关键问题）
+    if [[ -n "$MAVEN_HOME" ]]; then
+        local maven_bin="$MAVEN_HOME/bin"
+        if [[ -d "$maven_bin" ]]; then
+            path+="$maven_bin"
+            [[ -n "$ZSH_DEBUG" ]] && echo "✅ Maven 已添加到 PATH: $maven_bin"
+        else
+            # 即使目录检查失败，也尝试添加（可能是权限或时序问题）
+            path+="$maven_bin"
+            [[ -n "$ZSH_DEBUG" ]] && echo "⚠️  强制添加 Maven 到 PATH: $maven_bin"
+        fi
+    else
+        [[ -n "$ZSH_DEBUG" ]] && echo "❌ MAVEN_HOME 未设置"
+    fi
     
     # 添加 pnpm 路径（如果存在）
     [[ -d "$PNPM_HOME" ]] && path+="$PNPM_HOME"
@@ -71,11 +125,58 @@ build_path() {
     # 添加 Rust 路径
     [[ -d "$HOME/.cargo/bin" ]] && path+="$HOME/.cargo/bin"
     
+    # 添加 Android SDK 路径
+    if [[ -n "$ANDROID_HOME" ]]; then
+        [[ -d "$ANDROID_HOME/tools" ]] && path+="$ANDROID_HOME/tools"
+        [[ -d "$ANDROID_HOME/platform-tools" ]] && path+="$ANDROID_HOME/platform-tools"
+    fi
+    
     export PATH
+    
+    # 调试信息
+    [[ -n "$ZSH_DEBUG" ]] && {
+        echo "🛠️  当前 PATH 包含的工具目录："
+        echo "$PATH" | tr ':' '\n' | grep -E "(maven|mvn|cargo|fnm|pnpm)" | sed 's/^/   /'
+    }
+}
+
+# 启动时强制确保 Maven 在 PATH 中
+ensure_maven_in_path() {
+    if [[ -n "$MAVEN_HOME" && -d "$MAVEN_HOME/bin" ]]; then
+        # 检查 PATH 中是否已包含 Maven
+        if [[ "$PATH" != *"$MAVEN_HOME/bin"* ]]; then
+            export PATH="$MAVEN_HOME/bin:$PATH"
+            [[ -n "$ZSH_DEBUG" ]] && echo "🔧 强制添加 Maven 到 PATH"
+        fi
+        
+        # 验证 mvn 命令可用性
+        if ! command -v mvn >/dev/null 2>&1; then
+            export PATH="$MAVEN_HOME/bin:$PATH"
+            [[ -n "$ZSH_DEBUG" ]] && echo "⚠️  二次修复：强制重新添加 Maven 到 PATH"
+        fi
+    fi
 }
 
 # 初始化 PATH
 build_path
+
+# 启动时确保 Maven 可用（关键修复）
+ensure_maven_in_path
+
+# ===== 验证 Maven 安装 =====
+verify_maven() {
+    if command -v mvn >/dev/null 2>&1; then
+        local mvn_version=$(mvn --version 2>/dev/null | head -1)
+        [[ -n "$ZSH_DEBUG" ]] && echo "✅ Maven 可用: $mvn_version"
+        return 0
+    else
+        [[ -n "$ZSH_DEBUG" ]] && echo "❌ Maven 命令不可用"
+        return 1
+    fi
+}
+
+# 初始化时验证 Maven
+verify_maven
 
 # ===== 关键修复：直接初始化 fnm 环境 =====
 # 启动时直接初始化，不再依赖懒加载
@@ -181,9 +282,12 @@ alias unproxy='unset all_proxy'
 alias vim='nvim'
 alias tmux='TERM=screen-256color tmux -2'
 
-# Maven
+# Maven（改进的别名，添加错误处理）
 alias mvnd='mvn clean deploy -Dmaven.test.skip=true -Dmaven.compile.fork=true -T 1C'
 alias mvnp='mvn clean package -Dmaven.test.skip=true -Dmaven.compile.fork=true -T 1C'
+alias mvni='mvn clean install -Dmaven.test.skip=true -Dmaven.compile.fork=true -T 1C'
+alias mvnt='mvn clean test'
+alias mvnv='mvn --version'
 
 # 系统工具
 alias ll='ls -la'
@@ -299,6 +403,57 @@ setup_keybindings() {
 # 立即设置基本键盘绑定
 setup_keybindings
 
+# ===== Maven 专用修复函数 =====
+fix-maven() {
+    echo "🔧 修复 Maven 配置..."
+    
+    # 重新检测 Maven 路径
+    echo "🔍 重新检测 Maven 安装位置..."
+    if DETECTED_MAVEN=$(detect_maven_home); then
+        export MAVEN_HOME="$DETECTED_MAVEN"
+        echo "✅ 检测到 Maven: $MAVEN_HOME"
+    else
+        echo "❌ 未检测到 Maven 安装，请检查以下位置："
+        echo "   - $HOME/soft/mvn"
+        echo "   - /opt/homebrew/share/maven"
+        echo "   - /usr/local/share/maven"
+        echo "💡 或使用 Homebrew 安装: brew install maven"
+        return 1
+    fi
+    
+    # 重新构建 PATH
+    echo "🔄 重新构建 PATH..."
+    build_path
+    
+    # 验证 Maven
+    if command -v mvn >/dev/null 2>&1; then
+        local mvn_version=$(mvn --version | head -1)
+        echo "✅ Maven 修复成功: $mvn_version"
+        echo "📍 Maven 位置: $(which mvn)"
+        echo "🏠 MAVEN_HOME: $MAVEN_HOME"
+    else
+        echo "❌ Maven 仍不可用，请检查安装"
+        return 1
+    fi
+}
+
+# 安装 Maven（如果未安装）
+install-maven() {
+    echo "📦 安装 Maven..."
+    
+    if command -v brew >/dev/null 2>&1; then
+        echo "🍺 通过 Homebrew 安装 Maven..."
+        brew install maven
+        
+        # 重新检测和配置
+        fix-maven
+    else
+        echo "❌ 未找到 Homebrew，请手动安装 Maven"
+        echo "💡 Homebrew 安装: /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""
+        echo "💡 或从官网下载: https://maven.apache.org/download.cgi"
+    fi
+}
+
 # ===== 历史记录修复函数 =====
 fix-history() {
     echo "🔧 修复历史记录..."
@@ -366,10 +521,13 @@ show_help() {
 📎 fnm: brew install fnm
 🟢 Node.js: fnm install --lts && fnm default lts
 🦀 Rust: curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh
+📚 Maven: brew install maven
 
 💡 使用 'zsh-init' 加载完整增强功能
 💡 使用 'check-env' 检查环境状态
 💡 使用 'fix-history' 修复历史记录问题
+💡 使用 'fix-maven' 修复 Maven 配置问题
+💡 使用 'install-maven' 安装 Maven
 ══════════════════════════
 EOF
 }
@@ -381,7 +539,7 @@ zsh-init() {
     echo "✅ 历史搜索和自动补全已启用"
 }
 
-# 环境检查工具
+# 增强的环境检查工具
 check-env() {
     echo "🔍 环境状态检查"
     echo "━━━━━━━━━━━━━━━━"
@@ -394,19 +552,35 @@ check-env() {
     echo "   记录数量: $(fc -l 2>/dev/null | wc -l | tr -d ' ')"
     echo
     
-    # Node.js 环境（新增 fnm 状态检查）
-    if command -v fnm >/dev/null 2>&1; then
-        echo "✅ fnm: 已初始化（版本: $(fnm --version)）"
-        echo "✅ 当前 Node.js: $(node --version 2>/dev/null || echo '未激活')"
+    # Maven 状态（重点检查）
+    echo "📚 Maven 状态："
+    echo "   MAVEN_HOME: $MAVEN_HOME"
+    echo "   目录存在: $([[ -d "$MAVEN_HOME" ]] && echo '✅' || echo '❌')"
+    echo "   mvn 命令: $(command -v mvn >/dev/null 2>&1 && echo "✅ $(which mvn)" || echo '❌ 不可用')"
+    if command -v mvn >/dev/null 2>&1; then
+        echo "   版本信息: $(mvn --version | head -1)"
     else
-        echo "❌ fnm 未安装或不可用"
+        echo "   💡 修复建议: 运行 'fix-maven' 或 'install-maven'"
     fi
-    [[ -n "$(command -v npm)" ]] && echo "✅ npm: $(npm --version)"
-    [[ -n "$(command -v pnpm)" ]] && echo "✅ pnpm: $(pnpm --version)"
+    echo
+    
+    # Node.js 环境（新增 fnm 状态检查）
+    echo "🟢 Node.js 环境："
+    if command -v fnm >/dev/null 2>&1; then
+        echo "   fnm: ✅ 已初始化（版本: $(fnm --version)）"
+        echo "   当前 Node.js: $(node --version 2>/dev/null || echo '❌ 未激活')"
+    else
+        echo "   fnm: ❌ 未安装或不可用"
+    fi
+    [[ -n "$(command -v npm)" ]] && echo "   npm: ✅ $(npm --version)"
+    [[ -n "$(command -v pnpm)" ]] && echo "   pnpm: ✅ $(pnpm --version)"
+    echo
     
     # 其他工具
-    [[ -n "$(command -v brew)" ]] && echo "✅ Homebrew: 可用"
-    [[ -n "$(command -v cargo)" ]] && echo "✅ Rust: 可用"
+    echo "🛠️  其他工具："
+    [[ -n "$(command -v brew)" ]] && echo "   Homebrew: ✅ 可用"
+    [[ -n "$(command -v cargo)" ]] && echo "   Rust: ✅ 可用"
+    [[ -n "$(command -v git)" ]] && echo "   Git: ✅ 可用"
     
     echo "━━━━━━━━━━━━━━━━"
 }
@@ -416,7 +590,7 @@ if [[ $- == *i* ]] && [[ ! -f "$HOME/.zshrc_help_shown" ]]; then
     show_help
     touch "$HOME/.zshrc_help_shown"
     echo
-    echo "💡 提示：使用 'check-env' 检查环境，'fix-history' 修复历史记录"
+    echo "💡 提示：使用 'check-env' 检查环境，'fix-maven' 修复 Maven 问题"
 fi
 
 # 隐藏帮助
@@ -428,6 +602,7 @@ hide-help() {
 # ===== 调试信息 =====
 [[ -n "$ZSH_DEBUG" ]] && {
     echo "Zsh 配置加载完成，用时: $(($(date +%s%N)/1000000 - ZSH_START_TIME))ms"
-    echo "Node.js 环境状态: $(command -v node >/dev/null 2>&1 && echo '已初始化' || echo '未初始化')"
+    echo "Maven 状态: $(command -v mvn >/dev/null 2>&1 && echo '✅ 可用' || echo '❌ 不可用')"
+    echo "Node.js 环境状态: $(command -v node >/dev/null 2>&1 && echo '✅ 已初始化' || echo '❌ 未初始化')"
     echo "历史记录状态: $(fc -l | wc -l) 条记录"
 }
