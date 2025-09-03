@@ -1,608 +1,326 @@
 #!/usr/bin/env zsh
 
-# ===== 修复 Maven 和环境变量问题的优化版 zshrc =====
-# 版本: 7.4 - 修复 Maven 不生效问题
+# ===== 简洁优雅的 macOS zshrc 配置 =====
+# 专注解决 Maven、Android 工具路径问题
+# 版本: 8.0 - 简化版
 
-# ===== 启动时间记录（调试用） =====
-[[ -n "$ZSH_DEBUG" ]] && ZSH_START_TIME=$(($(date +%s%N)/1000000))
+# ===== 核心环境变量配置 =====
+# Homebrew 路径检测（支持 Apple Silicon 和 Intel Mac）
+if [[ -d "/opt/homebrew" ]]; then
+    export HOMEBREW_PREFIX="/opt/homebrew"
+elif [[ -d "/usr/local/Homebrew" ]]; then
+    export HOMEBREW_PREFIX="/usr/local"
+fi
 
-# ===== 历史记录配置（修复版） =====
-export HISTFILE="${HOME}/.zsh_history"
-export HISTSIZE=100000
-export SAVEHIST=100000
+# 开发工具路径配置
+export JAVA_HOME="/Library/Java/JavaVirtualMachines/$(ls /Library/Java/JavaVirtualMachines | head -1)/Contents/Home"
+export MAVEN_HOME="$HOMEBREW_PREFIX/share/maven"
+export ANDROID_HOME="$HOME/Library/Android/sdk"
+export PNPM_HOME="$HOME/Library/pnpm"
 
-# 确保历史文件存在并可写
-[[ ! -f "$HISTFILE" ]] && touch "$HISTFILE"
-[[ ! -w "$HISTFILE" ]] && chmod 644 "$HISTFILE"
-
-# 历史记录选项设置
-setopt EXTENDED_HISTORY          # 记录时间戳
-setopt SHARE_HISTORY            # 多个会话共享历史
-setopt HIST_VERIFY              # 历史扩展时进行验证
-setopt HIST_EXPIRE_DUPS_FIRST   # 删除重复项时优先删除旧的
-setopt HIST_IGNORE_DUPS         # 忽略连续重复命令
-setopt HIST_IGNORE_ALL_DUPS     # 忽略所有重复命令
-setopt HIST_FIND_NO_DUPS        # 搜索时忽略重复
-setopt HIST_IGNORE_SPACE        # 忽略以空格开头的命令
-setopt HIST_SAVE_NO_DUPS        # 保存时忽略重复
-setopt HIST_REDUCE_BLANKS       # 删除多余空格
-setopt INC_APPEND_HISTORY       # 立即追加到历史文件
-setopt HIST_BEEP                # 历史搜索失败时响铃
-
-# 其他 shell 选项
-setopt AUTO_CD CORRECT MENU_COMPLETE
-
-# ===== 环境变量配置（修复版） =====
-# 检测 Maven 安装位置
-detect_maven_home() {
+# 如果 Homebrew Maven 不存在，尝试其他位置
+if [[ ! -d "$MAVEN_HOME" ]]; then
     local maven_candidates=(
         "$HOME/soft/mvn"
-        "$HOME/apache-maven"
-        "$HOME/.m2/wrapper/dists"
-        "/opt/homebrew/share/maven"
-        "/usr/local/share/maven"
+        "$HOME/.m2/wrapper/dists/apache-maven-*"
         "/opt/maven"
-        "/usr/share/maven"
     )
     
     for candidate in $maven_candidates; do
-        if [[ -d "$candidate" && -f "$candidate/bin/mvn" ]]; then
-            echo "$candidate"
-            return 0
+        if [[ -d $candidate && -f $candidate/bin/mvn ]]; then
+            export MAVEN_HOME="$candidate"
+            break
         fi
     done
-    
-    # 通过 which 命令查找
-    local mvn_path=$(which mvn 2>/dev/null)
-    if [[ -n "$mvn_path" ]]; then
-        # 从 /path/to/maven/bin/mvn 提取 /path/to/maven
-        echo "${mvn_path%/bin/mvn}"
-        return 0
-    fi
-    
-    return 1
-}
-
-# 自动检测并设置 Maven 路径
-if DETECTED_MAVEN=$(detect_maven_home); then
-    export MAVEN_HOME="$DETECTED_MAVEN"
-    [[ -n "$ZSH_DEBUG" ]] && echo "🔍 检测到 Maven: $MAVEN_HOME"
-else
-    # 使用默认路径（向后兼容）
-    export MAVEN_HOME="$HOME/soft/mvn"
-    [[ -n "$ZSH_DEBUG" ]] && echo "⚠️  使用默认 Maven 路径: $MAVEN_HOME"
 fi
 
-# 其他环境变量
-export ANDROID_HOME="$HOME/Library/Android/sdk"
-export PNPM_HOME="$HOME/Library/pnpm"
-export DISPLAY=":0"
+# ===== PATH 构建 - 确保工具可用性 =====
+# 清理并重建 PATH（避免重复）
+typeset -U path  # 自动去重
 
-# ===== 改进的 PATH 构建策略 =====
-# 构建基础 PATH（不包含动态部分）
-typeset -a STATIC_PATHS=(
-    "/opt/homebrew/bin"
-    "/usr/local/bin" 
+# 基础系统路径
+path=(
+    # Homebrew 优先（包含通过 brew 安装的工具）
+    "$HOMEBREW_PREFIX/bin"
+    "$HOMEBREW_PREFIX/sbin"
+    
+    # 开发工具路径（关键）
+    "$MAVEN_HOME/bin"                    # Maven
+    "$ANDROID_HOME/platform-tools"      # Android SDK (adb, fastboot)
+    "$ANDROID_HOME/tools"               # Android tools
+    "$ANDROID_HOME/tools/bin"           # Android tools bin
+    "$PNPM_HOME"                        # pnpm
+    "$HOME/.cargo/bin"                  # Rust
+    "$HOME/.fnm"                        # fnm
+    
+    # 用户自定义路径
     "$HOME/bin"
+    "$HOME/.local/bin"
+    
+    # 系统默认路径
+    "/usr/local/bin"
     "/usr/bin"
     "/bin"
     "/usr/sbin"
     "/sbin"
 )
 
-# 优化的 PATH 构建函数（修复 Maven 问题）
-build_path() {
-    typeset -U path  # 自动去重
-    path=()
-    
-    # 添加静态路径
-    for dir in $STATIC_PATHS; do
-        [[ -d "$dir" ]] && path+="$dir"
-    done
-    
-    # 添加 Maven 路径（强制添加，修复关键问题）
-    if [[ -n "$MAVEN_HOME" ]]; then
-        local maven_bin="$MAVEN_HOME/bin"
-        if [[ -d "$maven_bin" ]]; then
-            path+="$maven_bin"
-            [[ -n "$ZSH_DEBUG" ]] && echo "✅ Maven 已添加到 PATH: $maven_bin"
-        else
-            # 即使目录检查失败，也尝试添加（可能是权限或时序问题）
-            path+="$maven_bin"
-            [[ -n "$ZSH_DEBUG" ]] && echo "⚠️  强制添加 Maven 到 PATH: $maven_bin"
-        fi
-    else
-        [[ -n "$ZSH_DEBUG" ]] && echo "❌ MAVEN_HOME 未设置"
-    fi
-    
-    # 添加 pnpm 路径（如果存在）
-    [[ -d "$PNPM_HOME" ]] && path+="$PNPM_HOME"
-    
-    # 添加 fnm 路径（关键：确保 fnm 可执行文件在 PATH 中）
-    [[ -d "$HOME/.fnm" ]] && path+="$HOME/.fnm"
-    [[ -d "$HOME/.local/share/fnm" ]] && path+="$HOME/.local/share/fnm"  # fnm 默认安装路径
-    
-    # 添加 Rust 路径
-    [[ -d "$HOME/.cargo/bin" ]] && path+="$HOME/.cargo/bin"
-    
-    # 添加 Android SDK 路径
-    if [[ -n "$ANDROID_HOME" ]]; then
-        [[ -d "$ANDROID_HOME/tools" ]] && path+="$ANDROID_HOME/tools"
-        [[ -d "$ANDROID_HOME/platform-tools" ]] && path+="$ANDROID_HOME/platform-tools"
-    fi
-    
-    export PATH
-    
-    # 调试信息
-    [[ -n "$ZSH_DEBUG" ]] && {
-        echo "🛠️  当前 PATH 包含的工具目录："
-        echo "$PATH" | tr ':' '\n' | grep -E "(maven|mvn|cargo|fnm|pnpm)" | sed 's/^/   /'
-    }
-}
+# 过滤不存在的路径，保持 PATH 清洁
+typeset -a valid_paths
+for dir in $path; do
+    [[ -d "$dir" ]] && valid_paths+="$dir"
+done
+path=($valid_paths)
 
-# 启动时强制确保 Maven 在 PATH 中
-ensure_maven_in_path() {
-    if [[ -n "$MAVEN_HOME" && -d "$MAVEN_HOME/bin" ]]; then
-        # 检查 PATH 中是否已包含 Maven
-        if [[ "$PATH" != *"$MAVEN_HOME/bin"* ]]; then
-            export PATH="$MAVEN_HOME/bin:$PATH"
-            [[ -n "$ZSH_DEBUG" ]] && echo "🔧 强制添加 Maven 到 PATH"
-        fi
-        
-        # 验证 mvn 命令可用性
-        if ! command -v mvn >/dev/null 2>&1; then
-            export PATH="$MAVEN_HOME/bin:$PATH"
-            [[ -n "$ZSH_DEBUG" ]] && echo "⚠️  二次修复：强制重新添加 Maven 到 PATH"
-        fi
-    fi
-}
+export PATH
 
-# 初始化 PATH
-build_path
+# ===== 历史记录配置 =====
+export HISTFILE="$HOME/.zsh_history"
+export HISTSIZE=50000
+export SAVEHIST=50000
 
-# 启动时确保 Maven 可用（关键修复）
-ensure_maven_in_path
+# 确保历史文件存在且可写
+[[ ! -f "$HISTFILE" ]] && touch "$HISTFILE"
 
-# ===== 验证 Maven 安装 =====
-verify_maven() {
-    if command -v mvn >/dev/null 2>&1; then
-        local mvn_version=$(mvn --version 2>/dev/null | head -1)
-        [[ -n "$ZSH_DEBUG" ]] && echo "✅ Maven 可用: $mvn_version"
-        return 0
-    else
-        [[ -n "$ZSH_DEBUG" ]] && echo "❌ Maven 命令不可用"
-        return 1
-    fi
-}
+# 历史记录选项
+setopt EXTENDED_HISTORY          # 记录时间戳
+setopt SHARE_HISTORY            # 多会话共享历史
+setopt HIST_IGNORE_DUPS         # 忽略重复命令
+setopt HIST_IGNORE_ALL_DUPS     # 删除旧的重复命令
+setopt HIST_IGNORE_SPACE        # 忽略空格开头的命令
+setopt HIST_REDUCE_BLANKS       # 删除多余空格
+setopt INC_APPEND_HISTORY       # 立即追加历史
 
-# 初始化时验证 Maven
-verify_maven
+# 其他 shell 选项
+setopt AUTO_CD                  # 自动 cd
+setopt CORRECT                  # 命令纠错
+setopt MENU_COMPLETE           # 菜单补全
 
-# ===== 关键修复：直接初始化 fnm 环境 =====
-# 启动时直接初始化，不再依赖懒加载
+# ===== Node.js 环境管理 (fnm) =====
+# 初始化 fnm（如果已安装）
 if command -v fnm >/dev/null 2>&1; then
-    # 导出 fnm 环境变量，并启用 cd 时自动切换 Node 版本
     eval "$(fnm env --use-on-cd --shell zsh)"
     
-    # 自动使用项目指定的 Node 版本（.nvmrc 或 .node-version）
-    if [[ -f .nvmrc ]]; then
-        fnm use --silent-if-unchanged 2>/dev/null
-    elif [[ -f .node-version ]]; then
-        fnm use --silent-if-unchanged 2>/dev/null
-    fi
-    
-    export FNM_INITIALIZED=1
-else
-    echo "❌ fnm 未安装或不可用，建议执行: brew install fnm"
-fi
-
-# ===== 智能懒加载系统（改进版） =====
-typeset -A LAZY_LOADED
-
-# Homebrew 懒加载
-lazy_load_brew() {
-    local brew_paths=("/opt/homebrew/bin/brew" "/usr/local/bin/brew")
-    for brew_path in $brew_paths; do
-        [[ -x "$brew_path" ]] && {
-            eval "$($brew_path shellenv)"
-            build_path  # 重新构建 PATH
-            break
-        }
-    done
-}
-
-# Rust 懒加载
-lazy_load_rust() {
-    [[ -f "$HOME/.cargo/env" ]] && source "$HOME/.cargo/env"
-}
-
-# Oh My Zsh 懒加载
-lazy_load_omz() {
-    [[ -d "$HOME/.oh-my-zsh" ]] || return 1
-    
-    export ZSH="$HOME/.oh-my-zsh"
-    ZSH_THEME="robbyrussell"
-    DISABLE_AUTO_UPDATE="true"
-    
-    plugins=(
-        git
-        z
-        zsh-syntax-highlighting
-        zsh-autosuggestions
-        history-substring-search
-    )
-    
-    source "$ZSH/oh-my-zsh.sh"
-    
-    # 配置 autosuggestions
-    ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=8"
-    ZSH_AUTOSUGGEST_STRATEGY=(history completion)
-    
-    # 设置键盘绑定
-    setup_keybindings
-}
-
-# ===== 命令包装器注册 =====
-# 仅保留非 Node 相关的懒加载（Node 已通过 fnm 直接初始化）
-
-# Homebrew 懒加载包装器
-if ! command -v brew >/dev/null 2>&1; then
-    brew() {
-        unfunction brew 2>/dev/null
-        lazy_load_brew
-        brew "$@"
+    # 自动使用项目 Node 版本
+    autoload -U add-zsh-hook
+    _fnm_autoload_hook() {
+        if [[ -f .nvmrc || -f .node-version ]]; then
+            fnm use --silent-if-unchanged 2>/dev/null
+        fi
     }
+    add-zsh-hook chpwd _fnm_autoload_hook
+    _fnm_autoload_hook  # 启动时检查
 fi
 
-# Rust 工具懒加载
-rust_commands=(rustc cargo rustup rust-analyzer)
-for cmd in $rust_commands; do
-    if ! command -v "$cmd" >/dev/null 2>&1; then
-        eval "
-        $cmd() {
-            unfunction $cmd 2>/dev/null
-            lazy_load_rust
-            $cmd \"\$@\"
-        }
-        "
-    fi
-done
+# ===== Homebrew 环境初始化 =====
+if [[ -n "$HOMEBREW_PREFIX" && -f "$HOMEBREW_PREFIX/bin/brew" ]]; then
+    eval "$($HOMEBREW_PREFIX/bin/brew shellenv)"
+fi
+
+# ===== Rust 环境 =====
+[[ -f "$HOME/.cargo/env" ]] && source "$HOME/.cargo/env"
+
+# ===== 补全系统 =====
+autoload -Uz compinit
+compinit
+
+# 补全样式配置
+zstyle ':completion:*' menu select                                    # 菜单选择
+zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}'           # 大小写不敏感
+zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}               # 颜色支持
+zstyle ':completion:*:descriptions' format '%F{yellow}-- %d --%f'    # 描述格式
+
+# ===== 自动建议和语法高亮 =====
+# zsh-autosuggestions
+if [[ ! -d "$HOME/.zsh/zsh-autosuggestions" ]]; then
+    echo "正在安装 zsh-autosuggestions..."
+    git clone --quiet https://github.com/zsh-users/zsh-autosuggestions "$HOME/.zsh/zsh-autosuggestions" 2>/dev/null
+fi
+
+if [[ -f "$HOME/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh" ]]; then
+    source "$HOME/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh"
+    ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=#666666"
+    ZSH_AUTOSUGGEST_STRATEGY=(history completion)
+fi
+
+# zsh-syntax-highlighting
+if [[ ! -d "$HOME/.zsh/zsh-syntax-highlighting" ]]; then
+    echo "正在安装 zsh-syntax-highlighting..."
+    git clone --quiet https://github.com/zsh-users/zsh-syntax-highlighting "$HOME/.zsh/zsh-syntax-highlighting" 2>/dev/null
+fi
+
+if [[ -f "$HOME/.zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ]]; then
+    source "$HOME/.zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+fi
+
+# ===== 键盘绑定 =====
+# Emacs 风格快捷键
+bindkey '^A' beginning-of-line      # Ctrl+A 行首
+bindkey '^E' end-of-line           # Ctrl+E 行尾
+bindkey '^K' kill-line             # Ctrl+K 删除到行尾
+bindkey '^U' kill-whole-line       # Ctrl+U 删除整行
+bindkey '^W' backward-kill-word    # Ctrl+W 删除单词
+bindkey '^R' history-incremental-search-backward  # Ctrl+R 搜索历史
+
+# 自动建议快捷键
+if (( $+functions[_zsh_autosuggest_accept] )); then
+    bindkey '^F' autosuggest-accept              # Ctrl+F 接受建议
+    bindkey '^ ' autosuggest-accept              # Ctrl+Space 接受建议
+fi
+
+# 方向键历史搜索
+bindkey '^[[A' up-line-or-history
+bindkey '^[[B' down-line-or-history
 
 # ===== 提示符 =====
-PS1='%F{cyan}%2~%f%(?.%F{green}.%F{red})❯%f '
+# 简洁的提示符，显示当前目录和 git 分支
+autoload -Uz vcs_info
+precmd() { vcs_info }
+zstyle ':vcs_info:git:*' formats '%F{blue}(%b)%f'
+setopt PROMPT_SUBST
+PROMPT='%F{green}%2~%f ${vcs_info_msg_0_}%F{cyan}❯%f '
 
-# ===== 别名定义 =====
-# 网络和SSH
-alias sho='ssh -o ServerAliveInterval=60'
-alias shozc='sho -p 7004 zczx@60.205.149.76'
-alias proxy='export all_proxy=http://127.0.0.1:7897'
-alias unproxy='unset all_proxy'
-
-# 开发工具
-alias vim='nvim'
-alias tmux='TERM=screen-256color tmux -2'
-
-# Maven（改进的别名，添加错误处理）
-alias mvnd='mvn clean deploy -Dmaven.test.skip=true -Dmaven.compile.fork=true -T 1C'
-alias mvnp='mvn clean package -Dmaven.test.skip=true -Dmaven.compile.fork=true -T 1C'
-alias mvni='mvn clean install -Dmaven.test.skip=true -Dmaven.compile.fork=true -T 1C'
-alias mvnt='mvn clean test'
-alias mvnv='mvn --version'
-
+# ===== 实用别名 =====
 # 系统工具
-alias ll='ls -la'
+alias ll='ls -alF'
 alias la='ls -A'
 alias l='ls -CF'
 alias ..='cd ..'
 alias ...='cd ../..'
 
-# ===== 基础补全和键盘绑定（修复版） =====
-# 启用 zsh 内置补全系统
-autoload -Uz compinit
-# 检查补全数据库是否需要更新（每天检查一次）
-if [[ -n ${ZDOTDIR}/.zcompdump(#qN.mh+24) ]]; then
-    compinit
-else
-    compinit -C  # 跳过安全检查以加快启动速度
-fi
+# 网络工具
+alias ping='ping -c 4'
+alias myip='curl -s https://httpbin.org/ip | jq -r .origin'
 
-# 补全样式配置
-zstyle ':completion:*' menu select
-zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}' 'r:|[._-]=* r:|=*' 'l:|=* r:|=*'
-zstyle ':completion:*' list-colors ''
-zstyle ':completion:*:descriptions' format '%F{yellow}-- %d --%f'
+# Git
+alias gs='git status'
+alias ga='git add'
+alias gc='git commit'
+alias gp='git push'
+alias gl='git pull'
+alias gd='git diff'
 
-# ===== 历史命令自动建议（核心功能） =====
-# 安装并启用 zsh-autosuggestions（如果未安装则自动安装）
-ZSH_AUTOSUGGEST_DIR="$HOME/.zsh/zsh-autosuggestions"
-if [[ ! -d "$ZSH_AUTOSUGGEST_DIR" ]]; then
-    echo "📥 正在安装 zsh-autosuggestions..."
-    mkdir -p "$HOME/.zsh"
-    git clone https://github.com/zsh-users/zsh-autosuggestions "$ZSH_AUTOSUGGEST_DIR" 2>/dev/null || {
-        echo "❌ 无法安装 zsh-autosuggestions，请检查网络连接"
-        echo "💡 手动安装: git clone https://github.com/zsh-users/zsh-autosuggestions ~/.zsh/zsh-autosuggestions"
-    }
-fi
+# Maven（确保可用性）
+alias mvn-clean='mvn clean'
+alias mvn-compile='mvn compile'
+alias mvn-test='mvn test'
+alias mvn-package='mvn clean package -DskipTests'
+alias mvn-install='mvn clean install -DskipTests'
+alias mvn-deploy='mvn clean deploy -DskipTests'
 
-# 加载 zsh-autosuggestions
-if [[ -f "$ZSH_AUTOSUGGEST_DIR/zsh-autosuggestions.zsh" ]]; then
-    source "$ZSH_AUTOSUGGEST_DIR/zsh-autosuggestions.zsh"
-    
-    # 配置自动建议
-    ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=#666666,underline"  # 灰色下划线
-    ZSH_AUTOSUGGEST_STRATEGY=(history completion)           # 基于历史和补全
-    ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=20                     # 最大缓冲区大小
-    ZSH_AUTOSUGGEST_USE_ASYNC=1                            # 异步建议
-    
-    echo "✅ 历史命令自动建议已启用"
-else
-    echo "⚠️  zsh-autosuggestions 未安装，历史补全功能不可用"
-    echo "💡 运行 'install-autosuggestions' 手动安装"
-fi
+# Android
+alias adb-devices='adb devices'
+alias adb-logcat='adb logcat'
+alias adb-install='adb install -r'
 
-# 安装语法高亮（可选但推荐）
-ZSH_HIGHLIGHT_DIR="$HOME/.zsh/zsh-syntax-highlighting"
-if [[ ! -d "$ZSH_HIGHLIGHT_DIR" ]]; then
-    echo "📥 正在安装 zsh-syntax-highlighting..."
-    git clone https://github.com/zsh-users/zsh-syntax-highlighting "$ZSH_HIGHLIGHT_DIR" 2>/dev/null
-fi
+# 开发工具
+alias vim='nvim'
+alias code='code .'
 
-if [[ -f "$ZSH_HIGHLIGHT_DIR/zsh-syntax-highlighting.zsh" ]]; then
-    source "$ZSH_HIGHLIGHT_DIR/zsh-syntax-highlighting.zsh"
-    echo "✅ 语法高亮已启用"
-fi
-
-# ===== 键盘绑定设置（修复版） =====
-setup_keybindings() {
-    # 基础编辑快捷键
-    bindkey '^A' beginning-of-line
-    bindkey '^E' end-of-line
-    bindkey '^K' kill-line
-    bindkey '^U' kill-whole-line
-    bindkey '^W' backward-kill-word
-    bindkey '^Y' yank
-    
-    # 历史记录搜索
-    bindkey '^R' history-incremental-search-backward
-    bindkey '^S' history-incremental-search-forward
-    
-    # 自动建议快捷键（重要！）
-    if (( $+functions[_zsh_autosuggest_accept] )); then
-        bindkey '^F' autosuggest-accept              # Ctrl+F 接受建议
-        bindkey '^]' autosuggest-accept              # Ctrl+] 接受建议  
-        bindkey '^ ' autosuggest-accept              # Ctrl+Space 接受建议
-        bindkey '^E' end-of-line                     # Ctrl+E 到行尾（也会接受建议）
-        bindkey '^\t' autosuggest-execute            # Ctrl+Tab 执行建议
-    fi
-    
-    # 如果有 Oh My Zsh 的历史子字符串搜索插件
-    if (( $+functions[history-substring-search-up] )); then
-        bindkey '^[[A' history-substring-search-up
-        bindkey '^[[B' history-substring-search-down
-        bindkey '^P' history-substring-search-up
-        bindkey '^N' history-substring-search-down
-    else
-        # 使用内置的历史搜索
-        bindkey '^[[A' up-line-or-history
-        bindkey '^[[B' down-line-or-history
-        bindkey '^P' up-line-or-history
-        bindkey '^N' down-line-or-history
-    fi
-    
-    # Tab 补全
-    bindkey '^I' complete-word
-    bindkey '^[[Z' reverse-menu-complete  # Shift+Tab
-    
-    # 右箭头接受自动建议
-    if (( $+functions[_zsh_autosuggest_partial_accept] )); then
-        bindkey '^[[C' forward-char              # 右箭头：向前移动光标
-        bindkey '^[f' autosuggest-partial-accept # Alt+F：部分接受建议
-    fi
-}
-
-# 立即设置基本键盘绑定
-setup_keybindings
-
-# ===== Maven 专用修复函数 =====
-fix-maven() {
-    echo "🔧 修复 Maven 配置..."
-    
-    # 重新检测 Maven 路径
-    echo "🔍 重新检测 Maven 安装位置..."
-    if DETECTED_MAVEN=$(detect_maven_home); then
-        export MAVEN_HOME="$DETECTED_MAVEN"
-        echo "✅ 检测到 Maven: $MAVEN_HOME"
-    else
-        echo "❌ 未检测到 Maven 安装，请检查以下位置："
-        echo "   - $HOME/soft/mvn"
-        echo "   - /opt/homebrew/share/maven"
-        echo "   - /usr/local/share/maven"
-        echo "💡 或使用 Homebrew 安装: brew install maven"
-        return 1
-    fi
-    
-    # 重新构建 PATH
-    echo "🔄 重新构建 PATH..."
-    build_path
-    
-    # 验证 Maven
-    if command -v mvn >/dev/null 2>&1; then
-        local mvn_version=$(mvn --version | head -1)
-        echo "✅ Maven 修复成功: $mvn_version"
-        echo "📍 Maven 位置: $(which mvn)"
-        echo "🏠 MAVEN_HOME: $MAVEN_HOME"
-    else
-        echo "❌ Maven 仍不可用，请检查安装"
-        return 1
-    fi
-}
-
-# 安装 Maven（如果未安装）
-install-maven() {
-    echo "📦 安装 Maven..."
-    
-    if command -v brew >/dev/null 2>&1; then
-        echo "🍺 通过 Homebrew 安装 Maven..."
-        brew install maven
-        
-        # 重新检测和配置
-        fix-maven
-    else
-        echo "❌ 未找到 Homebrew，请手动安装 Maven"
-        echo "💡 Homebrew 安装: /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""
-        echo "💡 或从官网下载: https://maven.apache.org/download.cgi"
-    fi
-}
-
-# ===== 历史记录修复函数 =====
-fix-history() {
-    echo "🔧 修复历史记录..."
-    
-    # 检查历史文件
-    if [[ ! -f "$HISTFILE" ]]; then
-        echo "📝 创建历史文件: $HISTFILE"
-        touch "$HISTFILE"
-    fi
-    
-    # 检查权限
-    if [[ ! -w "$HISTFILE" ]]; then
-        echo "🔐 修复历史文件权限"
-        chmod 644 "$HISTFILE"
-    fi
-    
-    # 重新加载历史
-    echo "🔄 重新加载历史记录"
-    fc -R "$HISTFILE"
-    
-    # 显示当前历史状态
-    echo "📊 历史文件: $HISTFILE"
-    echo "📊 历史记录数: $(fc -l | wc -l)"
-    echo "✅ 历史记录修复完成"
-}
-
-# 安装自动建议插件
-install-autosuggestions() {
-    echo "📥 安装 zsh-autosuggestions..."
-    mkdir -p "$HOME/.zsh"
-    
-    if git clone https://github.com/zsh-users/zsh-autosuggestions "$HOME/.zsh/zsh-autosuggestions"; then
-        echo "✅ zsh-autosuggestions 安装成功"
-        echo "🔄 请重新加载配置: source ~/.zshrc"
-    else
-        echo "❌ 安装失败，请检查网络连接或手动安装"
-        echo "💡 手动安装命令:"
-        echo "   git clone https://github.com/zsh-users/zsh-autosuggestions ~/.zsh/zsh-autosuggestions"
-    fi
-}
-
-# 测试自动建议功能
-test-autosuggestions() {
-    echo "🧪 测试历史命令自动建议功能..."
-    echo
-    echo "请按以下步骤测试："
-    echo "1. 输入一个命令（如: ls -la）并执行"
-    echo "2. 清空当前行，然后输入 'ls'（不要按回车）"
-    echo "3. 如果看到灰色的建议文字，按以下快捷键："
-    echo "   - Tab 或 → 键：接受建议"
-    echo "   - Ctrl+F：接受建议"
-    echo "   - Ctrl+E：移到行尾并接受建议"
-    echo
-    echo "如果没有看到建议，请运行 'install-autosuggestions'"
-}
-
-# ===== 便民功能 =====
-# 显示开发工具安装帮助
-show_help() {
-    cat << 'EOF'
-🚀 开发环境快速安装指南
-══════════════════════════
-📦 Homebrew: /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-🐚 Oh-my-zsh: sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/master/tools/install.sh)"
-📎 fnm: brew install fnm
-🟢 Node.js: fnm install --lts && fnm default lts
-🦀 Rust: curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh
-📚 Maven: brew install maven
-
-💡 使用 'zsh-init' 加载完整增强功能
-💡 使用 'check-env' 检查环境状态
-💡 使用 'fix-history' 修复历史记录问题
-💡 使用 'fix-maven' 修复 Maven 配置问题
-💡 使用 'install-maven' 安装 Maven
-══════════════════════════
-EOF
-}
-
-# 手动初始化完整功能
-zsh-init() {
-    lazy_load_omz
-    echo "✅ Zsh 增强功能已加载"
-    echo "✅ 历史搜索和自动补全已启用"
-}
-
-# 增强的环境检查工具
+# ===== 实用函数 =====
+# 检查环境状态
 check-env() {
-    echo "🔍 环境状态检查"
-    echo "━━━━━━━━━━━━━━━━"
+    echo "🔍 开发环境状态检查"
+    echo "═══════════════════════════"
     
-    # 历史记录状态
-    echo "📚 历史记录状态："
-    echo "   文件位置: $HISTFILE"
-    echo "   文件存在: $([[ -f "$HISTFILE" ]] && echo '✅' || echo '❌')"
-    echo "   文件可写: $([[ -w "$HISTFILE" ]] && echo '✅' || echo '❌')"
-    echo "   记录数量: $(fc -l 2>/dev/null | wc -l | tr -d ' ')"
-    echo
+    # Java
+    if command -v java >/dev/null 2>&1; then
+        echo "☕ Java: ✅ $(java -version 2>&1 | head -1)"
+        echo "   JAVA_HOME: $JAVA_HOME"
+    else
+        echo "☕ Java: ❌ 未安装"
+    fi
     
-    # Maven 状态（重点检查）
-    echo "📚 Maven 状态："
-    echo "   MAVEN_HOME: $MAVEN_HOME"
-    echo "   目录存在: $([[ -d "$MAVEN_HOME" ]] && echo '✅' || echo '❌')"
-    echo "   mvn 命令: $(command -v mvn >/dev/null 2>&1 && echo "✅ $(which mvn)" || echo '❌ 不可用')"
+    # Maven
     if command -v mvn >/dev/null 2>&1; then
-        echo "   版本信息: $(mvn --version | head -1)"
+        echo "📦 Maven: ✅ $(mvn --version | head -1)"
+        echo "   位置: $(which mvn)"
+        echo "   MAVEN_HOME: $MAVEN_HOME"
     else
-        echo "   💡 修复建议: 运行 'fix-maven' 或 'install-maven'"
+        echo "📦 Maven: ❌ 不可用"
+        echo "   修复命令: brew install maven"
     fi
-    echo
     
-    # Node.js 环境（新增 fnm 状态检查）
-    echo "🟢 Node.js 环境："
-    if command -v fnm >/dev/null 2>&1; then
-        echo "   fnm: ✅ 已初始化（版本: $(fnm --version)）"
-        echo "   当前 Node.js: $(node --version 2>/dev/null || echo '❌ 未激活')"
+    # Android SDK
+    if command -v adb >/dev/null 2>&1; then
+        echo "🤖 Android SDK: ✅ adb $(adb version | head -1)"
+        echo "   位置: $(which adb)"
+        echo "   ANDROID_HOME: $ANDROID_HOME"
     else
-        echo "   fnm: ❌ 未安装或不可用"
+        echo "🤖 Android SDK: ❌ adb 不可用"
+        echo "   请检查 Android Studio 安装"
     fi
-    [[ -n "$(command -v npm)" ]] && echo "   npm: ✅ $(npm --version)"
-    [[ -n "$(command -v pnpm)" ]] && echo "   pnpm: ✅ $(pnpm --version)"
-    echo
+    
+    # Node.js
+    if command -v node >/dev/null 2>&1; then
+        echo "🟢 Node.js: ✅ $(node --version)"
+        if command -v fnm >/dev/null 2>&1; then
+            echo "   管理工具: fnm $(fnm --version)"
+        fi
+    else
+        echo "🟢 Node.js: ❌ 未安装"
+        echo "   安装命令: fnm install --lts"
+    fi
     
     # 其他工具
-    echo "🛠️  其他工具："
-    [[ -n "$(command -v brew)" ]] && echo "   Homebrew: ✅ 可用"
-    [[ -n "$(command -v cargo)" ]] && echo "   Rust: ✅ 可用"
-    [[ -n "$(command -v git)" ]] && echo "   Git: ✅ 可用"
+    echo ""
+    echo "🛠️  其他工具:"
+    command -v git >/dev/null 2>&1 && echo "   Git: ✅ $(git --version)"
+    command -v brew >/dev/null 2>&1 && echo "   Homebrew: ✅ $(brew --version | head -1)"
+    command -v cargo >/dev/null 2>&1 && echo "   Rust: ✅ $(rustc --version)"
+    command -v pnpm >/dev/null 2>&1 && echo "   pnpm: ✅ $(pnpm --version)"
     
-    echo "━━━━━━━━━━━━━━━━"
+    echo "═══════════════════════════"
 }
 
-# 首次启动提示（仅交互式 shell）
-if [[ $- == *i* ]] && [[ ! -f "$HOME/.zshrc_help_shown" ]]; then
-    show_help
-    touch "$HOME/.zshrc_help_shown"
-    echo
-    echo "💡 提示：使用 'check-env' 检查环境，'fix-maven' 修复 Maven 问题"
+# 修复环境变量
+fix-env() {
+    echo "🔧 重新加载环境配置..."
+    source ~/.zshrc
+    echo "✅ 配置已重新加载"
+    echo "💡 运行 'check-env' 验证环境状态"
+}
+
+# 快速安装开发工具
+install-dev-tools() {
+    echo "🚀 安装常用开发工具..."
+    
+    if ! command -v brew >/dev/null 2>&1; then
+        echo "先安装 Homebrew..."
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    fi
+    
+    echo "安装开发工具..."
+    brew install git maven node fnm
+    
+    echo "安装 Node.js LTS..."
+    fnm install --lts
+    fnm default lts
+    
+    echo "✅ 开发工具安装完成！"
+    echo "🔄 请重新加载配置: source ~/.zshrc"
+}
+
+# ===== 启动优化 =====
+# 延迟加载 Oh My Zsh（可选）
+if [[ -d "$HOME/.oh-my-zsh" ]] && [[ "$LOAD_OMZ" == "true" ]]; then
+    export ZSH="$HOME/.oh-my-zsh"
+    ZSH_THEME="robbyrussell"
+    plugins=(git z)
+    source "$ZSH/oh-my-zsh.sh"
 fi
 
-# 隐藏帮助
-hide-help() {
-    touch "$HOME/.zshrc_help_shown"
-    echo "✅ 帮助信息已隐藏，使用 'show_help' 可重新显示"
-}
-
-# ===== 调试信息 =====
-[[ -n "$ZSH_DEBUG" ]] && {
-    echo "Zsh 配置加载完成，用时: $(($(date +%s%N)/1000000 - ZSH_START_TIME))ms"
-    echo "Maven 状态: $(command -v mvn >/dev/null 2>&1 && echo '✅ 可用' || echo '❌ 不可用')"
-    echo "Node.js 环境状态: $(command -v node >/dev/null 2>&1 && echo '✅ 已初始化' || echo '❌ 未初始化')"
-    echo "历史记录状态: $(fc -l | wc -l) 条记录"
-}
+# ===== 首次运行提示 =====
+if [[ $- == *i* ]] && [[ ! -f "$HOME/.zshrc_initialized" ]]; then
+    echo "🎉 zsh 配置已加载！"
+    echo ""
+    echo "💡 实用命令："
+    echo "   check-env     - 检查开发环境状态"
+    echo "   fix-env       - 重新加载配置"
+    echo "   install-dev-tools - 安装开发工具"
+    echo ""
+    echo "⚡ 如果 Maven 或 adb 命令不可用，请运行 'check-env' 检查"
+    echo ""
+    
+    touch "$HOME/.zshrc_initialized"
+fi
