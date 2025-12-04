@@ -11,8 +11,16 @@ if [[ -d "/opt/homebrew" ]]; then
 elif [[ -d "/usr/local/Homebrew" ]]; then
     export HOMEBREW_PREFIX="/usr/local"
 fi
+export CRS_OAI_KEY=cr_43eb160ec06e5d10606c8b3ed623ff95f0d8d8fb6fdfee1f0206151258a36fce
+
+
+#claude code  
+
+export ANTHROPIC_BASE_URL="https://claude.aipper.de/api"
+export ANTHROPIC_AUTH_TOKEN="cr_d2d768943410d8c2cc5c841049aac804ad9a2cf1573702b2dfe520d7097c3c3a"
 
 # 开发工具路径配置
+export HX_HOME=/Applications/HBuilderX.app/Contents/MacOS/
 export JAVA_HOME="/Library/Java/JavaVirtualMachines/$(ls /Library/Java/JavaVirtualMachines | head -1)/Contents/Home"
 export MAVEN_HOME="$HOMEBREW_PREFIX/share/maven"
 export ANDROID_HOME="$HOME/Library/Android/sdk"
@@ -52,7 +60,7 @@ path=(
     "$PNPM_HOME"                        # pnpm
     "$HOME/.cargo/bin"                  # Rust
     "$HOME/.fnm"                        # fnm
-    
+    "$HX_HOME"    
     # 用户自定义路径
     "$HOME/bin"
     "$HOME/.local/bin"
@@ -324,3 +332,10 @@ if [[ $- == *i* ]] && [[ ! -f "$HOME/.zshrc_initialized" ]]; then
     
     touch "$HOME/.zshrc_initialized"
 fi
+
+#THIS MUST BE AT THE END OF THE FILE FOR SDKMAN TO WORK!!!
+export SDKMAN_DIR="$HOME/.sdkman"
+[[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]] && source "$HOME/.sdkman/bin/sdkman-init.sh"
+
+# YesCode API key for Codex
+export YESCODE_API_KEY="cr_8814990f87bade52411d84f8c8568f8523739a403d93b3c94c99c34843e1083d"
