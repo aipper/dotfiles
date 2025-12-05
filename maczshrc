@@ -11,12 +11,13 @@ if [[ -d "/opt/homebrew" ]]; then
 elif [[ -d "/usr/local/Homebrew" ]]; then
     export HOMEBREW_PREFIX="/usr/local"
 fi
-export CRS_OAI_KEY=cr_43eb160ec06e5d10606c8b3ed623ff95f0d8d8fb6fdfee1f0206151258a36fce
+
+export CRS_OAI_KEY=cr_279e648cb0742f462c5b99b84e6ac9d3fc882cb0a55ed6b3c0f9a12bac264f9a
 
 
 #claude code  
 
-export ANTHROPIC_BASE_URL="https://claude.aipper.de/api"
+export ANTHROPIC_BASE_URL="https://p.mhao.tech/api"
 export ANTHROPIC_AUTH_TOKEN="cr_d2d768943410d8c2cc5c841049aac804ad9a2cf1573702b2dfe520d7097c3c3a"
 
 # 开发工具路径配置
