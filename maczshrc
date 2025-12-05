@@ -338,5 +338,3 @@ fi
 export SDKMAN_DIR="$HOME/.sdkman"
 [[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]] && source "$HOME/.sdkman/bin/sdkman-init.sh"
 
-# YesCode API key for Codex
-export YESCODE_API_KEY="cr_8814990f87bade52411d84f8c8568f8523739a403d93b3c94c99c34843e1083d"
