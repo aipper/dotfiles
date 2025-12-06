@@ -12,7 +12,7 @@ elif [[ -d "/usr/local/Homebrew" ]]; then
     export HOMEBREW_PREFIX="/usr/local"
 fi
 
-export CRS_OAI_KEY=cr_279e648cb0742f462c5b99b84e6ac9d3fc882cb0a55ed6b3c0f9a12bac264f9a
+export CRS_OAI_KEY=cr_b546b1672ff0379378592c1adf01b5ab46d3f404b43113fda1327611df611a34
 
 
 #claude code  
